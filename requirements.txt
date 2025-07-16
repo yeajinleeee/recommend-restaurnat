@@ -3,3 +3,4 @@ streamlit-geolocation
 pandas
 numpy
 haversine
+requests
