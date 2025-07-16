@@ -9,36 +9,27 @@ Original file is located at
 
 import pandas as pd
 
-# 예시로 df라는 이름의 DataFrame이 있다고 가정
+# case1_구글크롤링 전체 NaN 행 삭제
 essential_cols_case1 = ['구글가게명', '구글주소', '별점', '카테고리', '리뷰수', '구글위도', '구글경도']
-
-# 해당 칼럼 모두가 NaN인 행을 삭제
 df = df.dropna(subset=essential_cols_case1, how='all')
 
-# 확인할 칼럼 목록
+# case2_리뷰수, 별점,카테고리 모두 NaN 행 삭제
 essential_cols_case2 = ['리뷰수', '별점', '카테고리']
 
 # 문자열 "None"을 NaN으로 변환
 df[essential_cols_case2] = df[essential_cols_case2].replace("none", pd.NA)
-
-# 세 칼럼이 모두 NaN인 행 삭제
 df = df.dropna(subset=essential_cols_case2, how='all')
 
-# 확인할 칼럼 목록
+# case3_리뷰수, 별점, 모두 NaN 행 삭제
 essential_cols_case3 = ['리뷰수', '별점']
 
 # 문자열 "None"을 NaN으로 변환
 df[essential_cols_case3] = df[essential_cols_case3].replace("none", pd.NA)
-
-# 세 칼럼이 모두 NaN인 행 삭제
 df = df.dropna(subset=essential_cols_case3, how='all')
 
-# "None" 문자열을 NA로 바꾸고 숫자로 변환
-df['리뷰수'] = pd.to_numeric(df['리뷰수'].replace("None", pd.NA), errors='coerce')
-
-# 결측값은 그대로 두고, 음수는 절댓값 → 정수형으로 변환
+# 리뷰수 숫자로 변환하고, 음수 → 양수 → 정수
+df['리뷰수'] = pd.to_numeric(df['리뷰수'], errors='coerce')
 df['리뷰수'] = df['리뷰수'].apply(lambda x: abs(int(x)) if pd.notna(x) else pd.NA)
 
-df = df.dropna(subset=['리뷰수'])
-
-df = df.reset_index(drop=True)
+# 리뷰수 결측 삭제 + 인덱스 초기화
+df = df.dropna(subset=['리뷰수']).reset_index(drop=True)
