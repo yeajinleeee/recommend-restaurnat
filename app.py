@@ -8,7 +8,7 @@ import requests
 # CSV 파일 불러오기
 df = pd.read_csv('restaurants_seoul.csv', encoding='utf-8')
 
-st.title("날씨 + 위치 기반 음식점 추천")
+st.title("날씨 + 위치 기반 음식점 추천🌨️")
 
 #위치 가져오기 
 location = streamlit_geolocation()
