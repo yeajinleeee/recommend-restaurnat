@@ -11,16 +11,18 @@ df = pd.read_csv('restaurant_cleaned_data.csv', encoding='utf-8')
 st.title("날씨 + 위치 기반 음식점 추천🌨️")
 
 #위치 가져오기 
-# location = streamlit_geolocation()
+location = streamlit_geolocation()
 
-user_lat = 126.9732829
-user_lon = 37.56332531
 st.success(f"현재 위치: 위도 {user_lat}, 경도 {user_lon}")
 
-# if location:
-# else:
-    #st.warning("위치정보 허용을 눌러주세요.")
-    #st.stop()  # 위치 없으면 아래 코드 실행 안 되도록 종료
+if location:
+    user_lat = location["latitude"]
+    user_lon = location["longitude"]
+    st.success(f"현재 위치: 위도 {user_lat}, 경도 {user_lon}")
+    
+else:
+    st.warning("위치정보 허용을 눌러주세요.")
+    st.stop()  # 위치 없으면 아래 코드 실행 안 되도록 종료
 
 API_KEY = "56dfd0f8d8a24c9b492d704b63ddb493"
 weather_url = f"https://api.openweathermap.org/data/2.5/weather?lat={user_lat}&lon={user_lon}&appid={API_KEY}&units=metric&lang=kr"
