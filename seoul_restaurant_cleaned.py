@@ -29,7 +29,9 @@ df = df.dropna(subset=essential_cols_case3, how='all')
 
 # 리뷰수 숫자로 변환하고, 음수 → 양수 → 정수
 df['리뷰수'] = pd.to_numeric(df['리뷰수'], errors='coerce')
-df['리뷰수'] = df['리뷰수'].apply(lambda x: abs(int(x)) if pd.notna(x) else pd.NA)
+df['리뷰수'] = df['리뷰수'].abs().astype('Int64')
+
+df['별점'] = pd.to_numeric(df['별점'], errors='coerce')
 
 # 리뷰수 결측 삭제 + 인덱스 초기화
 df = df.dropna(subset=['리뷰수']).reset_index(drop=True)
