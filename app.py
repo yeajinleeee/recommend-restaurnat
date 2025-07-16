@@ -14,8 +14,8 @@ st.title("날씨 + 위치 기반 음식점 추천🌨️")
 location = streamlit_geolocation()
 
 if location:
-    user_lat = location["latitude"]
-    user_lon = location["longitude"]
+    user_lat = 126.9732829
+    user_lon = 37.56332531
     st.success(f"현재 위치: 위도 {user_lat}, 경도 {user_lon}")
 else:
     st.warning("위치정보 허용을 눌러주세요.")
