@@ -2,7 +2,7 @@ import streamlit as st
 from streamlit_geolocation import streamlit_geolocation
 import pandas as pd
 from haversine import haversine
-import request
+import requests
 
 
 # CSV 파일 불러오기
