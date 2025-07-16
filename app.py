@@ -50,11 +50,11 @@ def safe_haversine(lat1, lon1, lat2, lon2):
 # 거리 계산: 순서 중요! (위도, 경도)
 df['거리(km)'] = df.apply(lambda row: safe_haversine(user_lat, user_lon, row['위도'], row['경도']), axis=1)
 
-# 반경 1.5km 이내 음식점 필터링
-df_nearby = df[df['거리(km)'] <= 1.5].copy()
-df_nearby_count = df_nearby.count()
+# 반경 1.0km 이내 음식점 필터링
+df_nearby = df[df['거리(km)'] <= 1.0].copy()
+row_count = df_nearby.shape[0]
 
 st.title("반경 1km 이내 음식점 목록")
 st.write("다음은 주변 음식점 목록입니다:")
 st.dataframe(df_nearby)
-st.text(str(df_nearby_count))
+st.write(f"전체 행 개수: {row_count}")
