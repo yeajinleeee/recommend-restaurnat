@@ -4,7 +4,7 @@ import pandas as pd
 from haversine import haversine
 
 # CSV 파일 불러오기
-df = pd.read_csv('/Users/lyeajin/Desktop/sql/프로젝트 데이터/서울시 일반음식점(완)_위경도포함.csv', encoding='utf-8')
+df = pd.read_csv('restaurants_seoul.csv', encoding='utf-8')
 
 st.title("위치 기반 음식점 추천")
 
