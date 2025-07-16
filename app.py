@@ -13,8 +13,6 @@ st.title("날씨 + 위치 기반 음식점 추천🌨️")
 #위치 가져오기 
 location = streamlit_geolocation()
 
-st.success(f"현재 위치: 위도 {user_lat}, 경도 {user_lon}")
-
 if location:
     user_lat = location["latitude"]
     user_lon = location["longitude"]
