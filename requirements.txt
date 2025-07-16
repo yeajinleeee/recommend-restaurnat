@@ -1,3 +1,5 @@
 streamlit
+streamlit-geolocation
 pandas
 numpy
+haversine
