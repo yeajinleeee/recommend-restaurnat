@@ -52,7 +52,9 @@ df['거리(km)'] = df.apply(lambda row: safe_haversine(user_lat, user_lon, row['
 
 # 반경 1.5km 이내 음식점 필터링
 df_nearby = df[df['거리(km)'] <= 1.5].copy()
+df_nearby_count = df_nearby.count()
 
-st.title("반경 1.5km 이내 음식점 목록")
+st.title("반경 1km 이내 음식점 목록")
 st.write("다음은 주변 음식점 목록입니다:")
 st.dataframe(df_nearby)
+st.write("count:", df_nearby_count)
