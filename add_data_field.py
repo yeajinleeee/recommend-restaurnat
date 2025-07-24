@@ -274,7 +274,7 @@ def process_row(row):
         
     
 
-with open("part_2.csv", "r", encoding='utf-8-sig', errors='replace') as infile,\
+with open("part_2-1.csv", "r", encoding='utf-8-sig', errors='replace') as infile,\
 open("서울시 일반음식점(연동)_part_2-1.csv", "w", encoding='utf-8-sig', newline="") as outfile:
     reader = csv.DictReader(infile)
     fieldnames = reader.fieldnames + ["구글가게명", "구글주소", "별점", "카테고리", "리뷰수", "구글위도", "구글경도", "지도링크"]
