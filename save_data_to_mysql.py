@@ -38,7 +38,6 @@ def create_table():
                 jibun_address VARCHAR(255),
                 rating FLOAT,
                 category1 VARCHAR(100),
-                category2 VARCHAR(100),
                 review_cnt INT,
                 latitude VARCHAR(255),
                 longitude VARCHAR(255),
@@ -57,8 +56,8 @@ def insert_data():
     conn = connect_to_db()
     cursor = conn.cursor()
     sql = """
-            INSERT INTO restaurants_in_seoul (name, roadname_address, jibun_address, rating, category1, category2, review_cnt, latitude, longitude, map_link)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s,%s)
+            INSERT INTO restaurants_in_seoul (name, roadname_address, jibun_address, rating, category1, review_cnt, latitude, longitude, map_link)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
     with open(CSV_FILENAME, "r", encoding="cp949", errors="replace") as infile:
         reader = csv.DictReader(infile)
@@ -72,10 +71,9 @@ def insert_data():
                 row['지번주소'].strip(),
                 row['별점'].strip(),
                 row['업태구분명'].strip(),
-                row['카테고리'].strip(),
                 row['리뷰수'].strip(),
-                row['위도'].strip(),
-                row['경도'].strip(),
+                row['구글위도'].strip(),
+                row['구글경도'].strip(),
                 row['지도링크'].strip()
                 ))
 
