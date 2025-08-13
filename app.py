@@ -19,7 +19,7 @@ supabase: Client = create_client(url, key)
 st.title("날씨 + 위치 기반 음식점 추천🌨️")
 
 #위치 가져오기 
-location = streamlit_geolocation()
+location = streamlit_geolocation(high_accuracy=True)
 
 if location:
     user_lat = location["latitude"]
