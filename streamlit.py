@@ -4,7 +4,6 @@ import pandas as pd
 from haversine import haversine
 import requests
 
-
 # CSV 파일 불러오기
 df1 = pd.read_csv('df_clean1.csv', encoding='utf-8')
 df2 = pd.read_csv('df_clean2.csv', encoding='utf-8')
@@ -25,24 +24,45 @@ else:
     st.warning("위치정보 허용을 눌러주세요.")
     st.stop()  # 위치 없으면 아래 코드 실행 안 되도록 종료
 
-API_KEY = "56dfd0f8d8a24c9b492d704b63ddb493"
-weather_url = f"https://api.openweathermap.org/data/2.5/weather?lat={user_lat}&lon={user_lon}&appid={API_KEY}&units=metric&lang=kr"
 
-try:
-    res = requests.get(weather_url)
-    weather_data = res.json()
-    weather_main = weather_data['weather'][0]['main']  # 예: Clear, Rain, Snow
-    weather_desc = weather_data['weather'][0]['description']
-    temp = weather_data['main']['temp']
+with st.container():
+    st.subheader("2) 오늘의 날씨")
+    API_KEY = "56dfd0f8d8a24c9b492d704b63ddb493"  # <- 여기에 본인 키!
+    weather_url = (
+        f"https://api.openweathermap.org/data/2.5/weather"
+        f"?lat={user_lat}&lon={user_lon}&appid={API_KEY}&units=metric&lang=kr"
+    )
 
-    st.markdown(f"""
-    ### 현재 날씨 정보
-    - 상태: **{weather_desc}**
-    - 기온: **{temp}°C**
-    """)
-except Exception as e:
-    st.error("날씨 정보를 불러오는 데 실패했습니다.")
-    weather_main = None
+    try:
+        res = requests.get(weather_url)
+        weather_data = res.json()
+        weather_id   = int(weather_data['weather'][0]['id']) #날씨 코드
+        weather_main = weather_data['weather'][0]['main']  # 예: Clear, Rain, Snow
+        weather_desc = weather_data['weather'][0]['description'] 
+        icon_code    = weather_data['weather'][0]['icon'] #icon 이미지
+        temp         = float(weather_data['main']['temp'])
+
+        # 세션 저장
+        st.session_state["weather_main"] = weather_main
+        st.session_state["weather_desc"] = weather_desc
+        st.session_state["temp"] = temp
+        st.session_state["weather_id"] = weather_id
+        st.session_state["weather_icon"] = icon_code
+
+    
+        icon_url = f"https://openweathermap.org/img/wn/{icon_code}@2x.png"
+        c1, c2 = st.columns([1, 4])
+        with c1:
+            st.image(icon_url, caption="현재 날씨", use_container_width=True)
+        with c2:
+            st.markdown(
+                f"- 상태: **{weather_desc}**  \n"
+                f"- 기온: **{temp:.1f}°C**  \n"
+            )
+            
+    except Exception as e:
+        st.error("날씨 정보를 불러오는 데 실패했습니다.")
+        weather_main = None
 
 
 # 안전하게 haversine 계산
