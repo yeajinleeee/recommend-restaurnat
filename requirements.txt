@@ -4,3 +4,5 @@ pandas
 numpy
 haversine
 requests
+psycopg2-binary
+supabase
