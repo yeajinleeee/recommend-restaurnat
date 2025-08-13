@@ -6,7 +6,10 @@ import requests
 
 
 # CSV 파일 불러오기
-df = pd.read_csv('restaurant_cleaned_data.csv', encoding='utf-8')
+df1 = pd.read_csv('df_clean1.csv', encoding='utf-8')
+df2 = pd.read_csv('df_clean2.csv', encoding='utf-8')
+
+df = pd.concat([df1, df2], axis=0)
 
 st.title("날씨 + 위치 기반 음식점 추천🌨️")
 
@@ -52,10 +55,10 @@ def safe_haversine(lat1, lon1, lat2, lon2):
 df['거리(km)'] = df.apply(lambda row: safe_haversine(user_lat, user_lon, row['위도'], row['경도']), axis=1)
 
 # 반경 1.0km 이내 음식점 필터링
-df_nearby = df[df['거리(km)'] <= 1.0].copy()
+df_nearby = df[df['거리(km)'] <= 0.5].copy()
 row_count = df_nearby.shape[0]
 
-st.title("반경 1km 이내 음식점 목록")
+st.title("반경 500m 이내 음식점 목록")
 st.write("다음은 주변 음식점 목록입니다:")
 st.dataframe(df_nearby)
 st.write(f"전체 행 개수: {row_count}")
