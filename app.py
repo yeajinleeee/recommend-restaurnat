@@ -92,15 +92,12 @@ if weather_main:
             filtered_df = df[df['카테고리'] == selected_category]
             first_5_items = filtered_df.head(5)
 
-            for _, row in first_5_item.iterrows():
-                st.write(f"사업장명: {row['사업장명']}, 업태구분명: {row['업태구분명']}, 주소: {row['도로명주소']}, 리뷰수: {row['리뷰수']}")
-
             
             # 나머지 항목은 "더보기" 버튼 클릭 시 표시
             if len(filtered_df) > 5:
                 if st.button("더보기"):
-                    for _, row in filtered_df.iloc[5:].iterrows():
-                        st.write(f"사업장명: {row['사업장명']}, 업태구분명: {row['업태구분명']}, 주소: {row['도로명주소']}, 리뷰수: {row['리뷰수']}")
+                    for item in category_map[selected_category][5:]:
+                        st.write(item)
             
         else:
             st.warning("카테고리를 선택해주세요.")   
