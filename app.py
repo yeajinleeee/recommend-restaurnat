@@ -75,13 +75,17 @@ if weather_main:
     if weather_main in weather_categories:
         st.markdown(f"### 오늘 추천 드리는 카테고리:")
         
-        # 라디오 버튼으로 하나만 선택
-        selected_category = st.radio(
-            "추천 카테고리를 선택하세요", 
-            weather_categories[weather_main]
-        )
+        selected_category = None
+        # 각 카테고리를 블럭 형태로 버튼으로 만들기
+        for category in weather_categories[weather_main]:
+            if st.button(category):
+                selected_category = category
 
-        st.markdown(f"선택한 카테고리: **{selected_category}**")
+        # 선택된 카테고리 출력
+        if selected_category:
+            st.markdown(f"**선택한 카테고리:** {selected_category}")
+        else:
+            st.warning("카테고리를 선택해주세요.")   
     else:
         st.warning("추천할 카테고리가 없습니다.")
 else:
