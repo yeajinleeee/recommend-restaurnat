@@ -76,11 +76,10 @@ if weather_main:
         st.markdown(f"### 오늘 추천 드리는 카테고리:")
         
         selected_category = None
-        # 각 카테고리를 블럭 형태로 버튼으로 만들고 가로로 배치
-        for i, category in enumerate(weather_categories[weather_main]):
-            with columns[i]:
-                if st.button(category):
-                    selected_category = category
+        # 각 카테고리를 블럭 형태로 버튼으로 만들기
+        for category in weather_categories[weather_main]:
+            if st.button(category):
+                selected_category = category
 
         # 선택된 카테고리 출력
         if selected_category:
