@@ -26,68 +26,71 @@ if not location or location.get("latitude") is None:
     st.warning("위치정보 버튼을 눌러 허용해주세요. (브라우저에서 위치 권한 허용 필수)")
     st.stop()
 
-user_lat = location["latitude"]
-user_lon = location["longitude"]
+user_lat = 37.5665  #location["latitude"]
+user_lon = 126.9780  #location["longitude"]
 st.success(f"현재 위치: 위도 {user_lat}, 경도 {user_lon}")
 
 
-# if location:
-#    user_lat = location["latitude"]
-#     user_lon = location["longitude"]
-#     st.success(f"현재 위치: 위도 {user_lat}, 경도 {user_lon}")
-#     response = (
-#     supabase.rpc("get_restaurants_within_500m", {
-#     "user_lat": user_lat,
-#     "user_lng": user_lon
-#     }).execute()
-#     )
 
-
-#     st.title("반경 1km 이내 음식점 목록")
-#     st.write("다음은 주변 음식점 목록입니다:")
-#     st.write(f"전체 행 개수: {len(response.data)}")
-#     # st.write(response.data)
-
-#     df = pd.DataFrame(response.data)
-
-#     st.dataframe(df)
-
-    
-# else:
-#     st.warning("위치정보 허용을 눌러주세요.")
-#     st.stop()  # 위치 없으면 아래 코드 실행 안 되도록 종료
-
-
-# 반경 1km(또는 500m) 내 음식점: Supabase RPC
-try:
-    resp = supabase.rpc(
-        "get_restaurants_within_500m",
-        {"user_lat": user_lat, "user_lng": user_lon}
-    ).execute()
-
-    df = pd.DataFrame(resp.data or [])
-    st.subheader("반경 1km 이내 음식점 목록")
-    st.write(f"전체 행 개수: {len(df)}")
-    st.dataframe(df)
-except Exception as e:
-    st.error(f"음식점 데이터 조회 실패: {e}")
-
-
-#날씨
+#날씨 api 
 API_KEY = "56dfd0f8d8a24c9b492d704b63ddb493"
-weather_url = f"https://api.openweathermap.org/data/2.5/weather?lat={user_lat}&lon={user_lon}&appid={API_KEY}&units=metric&lang=kr"
-try:
-    res = requests.get(weather_url)
-    weather_data = res.json()
-    weather_main = weather_data['weather'][0]['main']  # 예: Clear, Rain, Snow
-    weather_desc = weather_data['weather'][0]['description']
-    temp = weather_data['main']['temp']
 
-    st.markdown(f"""
-    ### 현재 날씨 정보
-    - 상태: **{weather_desc}**
-    - 기온: **{temp}°C**
-    """)
+# 날씨 코드에 따른 카테고리 매핑
+weather_categories = {
+    "Clear": ["이국적인 음식", "디저트/카페", "술 한잔 하기 좋은 날", "가볍게 간단히", "시원한 음식", "해산물/생선요리"],
+    "Clouds": ["든든한 한끼", "뜨끈한 국물", "디저트/카페", "시원한 한끼", "해산물/생선요리"],
+    "Rain": ["뜨끈한 국물", "매콤한 음식", "술 한잔 하기 좋은 날", "패스트푸드/배달", "시원한 한끼"],
+    "Drizzle": ["디저트/카페", "가볍게 간단히", "건강/채식/특수식당", "해산물/생선요리"],
+    "Thunderstorm": ["육류구이/고기파티", "든든한 한끼", "패스트푸드/배달"],
+    "Snow": ["뜨끈한 국물", "육류구이/고기파티", "가족/단체회식", "디저트/카페", "해산물/생선요리"],
+    "Mist": ["건강/채식/특수식단", "뜨끈한 국물", "배달"],
+}
 
-except Exception as e:
-    st.error(f"날씨 정보를 불러오는 데 실패했습니다: {e}")
+def get_weather(lat, lon):
+    weather_url = f"https://api.openweathermap.org/data/2.5/weather?lat={user_lat}&lon={user_lon}&appid={API_KEY}&units=metric&lang=kr"
+    try:
+        response = requests.get(weather_url)
+        weather_data = response.json()
+
+        # 날씨 상태 코드와 설명 추출
+        weather_main = weather_data['weather'][0]['main']  # 예: Clear, Rain, Snow
+        weather_desc = weather_data['weather'][0]['description']
+        temp = weather_data['main']['temp']
+
+        return weather_main, weather_desc, temp
+    except Exception as e:
+        return None, None, None
+
+if weather_main:
+    st.markdown(f"### 현재 날씨: **{weather_desc}**")
+    st.markdown(f"기온: **{temp}°C**")
+
+    # 날씨 코드에 해당하는 카테고리 리스트 가져오기
+    if weather_main in weather_categories:
+        st.markdown(f"### 오늘 추천 드리는 카테고리:")
+        
+        # 카테고리 선택 리스트 출력 (Streamlit에서 여러 카테고리 선택)
+        selected_category = st.selectbox("추천 카테고리를 선택하세요", weather_categories[weather_main])
+
+        st.markdown(f"선택한 카테고리: **{selected_category}**")
+    else:
+        st.warning("추천할 카테고리가 없습니다.")
+else:
+    st.error("날씨 정보를 불러오는 데 실패했습니다.")
+
+
+
+
+# # 반경 1km(또는 500m) 내 음식점: Supabase RPC
+# try:
+#     resp = supabase.rpc(
+#         "get_restaurants_within_500m",
+#         {"user_lat": user_lat, "user_lng": user_lon}
+#     ).execute()
+
+#     df = pd.DataFrame(resp.data or [])
+#     st.subheader("반경 1km 이내 음식점 목록")
+#     st.write(f"전체 행 개수: {len(df)}")
+#     st.dataframe(df)
+# except Exception as e:
+#     st.error(f"음식점 데이터 조회 실패: {e}")
