@@ -20,7 +20,7 @@ st.title("날씨 + 위치 기반 음식점 추천🌨️")
 
 #위치 가져오기 
 location = streamlit_geolocation()
-st.caption(f"raw location: {location}")  # 디버깅용
+#st.caption(f"raw location: {location}")  # 디버깅용
 
 if not location or location.get("latitude") is None:
     st.warning("위치정보 버튼을 눌러 허용해주세요. (브라우저에서 위치 권한 허용 필수)")
@@ -47,7 +47,10 @@ weather_categories = {
 }
 
 def get_weather(lat, lon):
-    weather_url = f"https://api.openweathermap.org/data/2.5/weather?lat={user_lat}&lon={user_lon}&appid={API_KEY}&units=metric&lang=kr"
+    weather_url = (
+        f"https://api.openweathermap.org/data/2.5/weather"
+        f"?lat={user_lat}&lon={user_lon}&appid={API_KEY}&units=metric&lang=kr"
+    )
     try:
         response = requests.get(weather_url)
         weather_data = response.json()
@@ -60,6 +63,9 @@ def get_weather(lat, lon):
         return weather_main, weather_desc, temp
     except Exception as e:
         return None, None, None
+
+#날씨 정보 가져오기 
+weather_main, weather_desc, temp = get_weather(user_lat, user_lon)
 
 if weather_main:
     st.markdown(f"### 현재 날씨: **{weather_desc}**")
