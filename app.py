@@ -91,8 +91,7 @@ if weather_main:
 
             # 선택한 카테고리에 맞는 업태 구분명 출력
             st.markdown(f"**{selected_category}**에 해당하는 업태 구분명:")
-            st.write(category_map[selected_category])  # 선택된 카테고리에 해당하는 업태 구분명 출력
-
+            
             #5개씩 나누어 보여주기
             filtered_df = df[df['카테고리'] == selected_category]
             first_5_items = filtered_df.head(5)
