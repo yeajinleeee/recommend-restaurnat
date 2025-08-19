@@ -20,36 +20,62 @@ st.title("날씨 + 위치 기반 음식점 추천🌨️")
 
 #위치 가져오기 
 location = streamlit_geolocation()
+st.caption(f"raw location: {location}")  # 디버깅용
 
-if location:
-    user_lat = location["latitude"]
-    user_lon = location["longitude"]
-    st.success(f"현재 위치: 위도 {user_lat}, 경도 {user_lon}")
-    response = (
-    supabase.rpc("get_restaurants_within_500m", {
-    "user_lat": user_lat,
-    "user_lng": user_lon
-    }).execute()
-    )
+if not location or location.get("latitude") is None:
+    st.warning("위치정보 버튼을 눌러 허용해주세요. (브라우저에서 위치 권한 허용 필수)")
+    st.stop()
+
+user_lat = location["latitude"]
+user_lon = location["longitude"]
+st.success(f"현재 위치: 위도 {user_lat}, 경도 {user_lon}")
 
 
-    st.title("반경 1km 이내 음식점 목록")
-    st.write("다음은 주변 음식점 목록입니다:")
-    st.write(f"전체 행 개수: {len(response.data)}")
-    # st.write(response.data)
+# if location:
+#    user_lat = location["latitude"]
+#     user_lon = location["longitude"]
+#     st.success(f"현재 위치: 위도 {user_lat}, 경도 {user_lon}")
+#     response = (
+#     supabase.rpc("get_restaurants_within_500m", {
+#     "user_lat": user_lat,
+#     "user_lng": user_lon
+#     }).execute()
+#     )
 
-    df = pd.DataFrame(response.data)
 
-    st.dataframe(df)
+#     st.title("반경 1km 이내 음식점 목록")
+#     st.write("다음은 주변 음식점 목록입니다:")
+#     st.write(f"전체 행 개수: {len(response.data)}")
+#     # st.write(response.data)
+
+#     df = pd.DataFrame(response.data)
+
+#     st.dataframe(df)
 
     
-else:
-    st.warning("위치정보 허용을 눌러주세요.")
-    st.stop()  # 위치 없으면 아래 코드 실행 안 되도록 종료
+# else:
+#     st.warning("위치정보 허용을 눌러주세요.")
+#     st.stop()  # 위치 없으면 아래 코드 실행 안 되도록 종료
 
+
+# 반경 1km(또는 500m) 내 음식점: Supabase RPC
+try:
+    resp = supabase.rpc(
+        "get_restaurants_within_500m",
+        {"user_lat": user_lat, "user_lng": user_lon}
+    ).execute()
+
+    df = pd.DataFrame(resp.data or [])
+    st.subheader("반경 1km 이내 음식점 목록")
+    st.write(f"전체 행 개수: {len(df)}")
+    st.dataframe(df)
+except Exception as e:
+    st.error(f"음식점 데이터 조회 실패: {e}")
+
+
+#날씨
 API_KEY = "56dfd0f8d8a24c9b492d704b63ddb493"
 weather_url = f"https://api.openweathermap.org/data/2.5/weather?lat={user_lat}&lon={user_lon}&appid={API_KEY}&units=metric&lang=kr"
-
 try:
     res = requests.get(weather_url)
     weather_data = res.json()
@@ -63,7 +89,5 @@ try:
     - 기온: **{temp}°C**
     """)
 
-
 except Exception as e:
-    st.error("날씨 정보를 불러오는 데 실패했습니다.")
-    weather_main = None
+    st.error(f"날씨 정보를 불러오는 데 실패했습니다: {e}")
