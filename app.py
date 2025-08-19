@@ -68,22 +68,24 @@ def get_weather(lat, lon):
 weather_main, weather_desc, temp = get_weather(user_lat, user_lon)
 
 if weather_main:
-    st.markdown(f"### 현재 날씨: **{weather_desc}**")
+    st.markdown(f"현재 날씨: **{weather_desc}**")
     st.markdown(f"기온: **{temp}°C**")
 
     # 날씨 코드에 해당하는 카테고리 리스트 가져오기
     if weather_main in weather_categories:
         st.markdown(f"### 오늘 추천 드리는 카테고리:")
         
-        # 카테고리 선택 리스트 출력 (Streamlit에서 여러 카테고리 선택)
-        selected_category = st.selectbox("추천 카테고리를 선택하세요", weather_categories[weather_main])
+        # 라디오 버튼으로 하나만 선택
+        selected_category = st.radio(
+            "추천 카테고리를 선택하세요", 
+            weather_categories[weather_main]
+        )
 
         st.markdown(f"선택한 카테고리: **{selected_category}**")
     else:
         st.warning("추천할 카테고리가 없습니다.")
 else:
     st.error("날씨 정보를 불러오는 데 실패했습니다.")
-
 
 
 
