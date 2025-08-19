@@ -8,17 +8,13 @@ import psycopg2
 from supabase import create_client, Client
 import os
 
-# url: str = "https://yamiretxhfjduvaktqhx.supabase.co"
-# key: str = "sb_publishable_J4ipWe8Qp6JpxFHBtBO3PA_P4-Mcg5Q"
-# supabase: Client = create_client(url, key)    
-# # CSV 파일 불러오기
-# #df = pd.read_csv('restaurant_cleaned_data.csv', encoding='utf-8')
+url: str = "https://yamiretxhfjduvaktqhx.supabase.co"
+key: str = "sb_publishable_J4ipWe8Qp6JpxFHBtBO3PA_P4-Mcg5Q"
+supabase: Client = create_client(url, key)    
 
 # CSV 파일 불러오기
-df1 = pd.read_csv('df_clean1.csv', encoding='utf-8')
-df2 = pd.read_csv('df_clean2.csv', encoding='utf-8')
+df = pd.read_csv('restaurant_cleaned_data.csv', encoding='utf-8')
 
-df = pd.concat([df1, df2], axis=0)
 
 st.title("날씨 + 위치 기반 음식점 추천🌨️")
 
