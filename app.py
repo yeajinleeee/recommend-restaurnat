@@ -13,7 +13,7 @@ key: str = "sb_publishable_J4ipWe8Qp6JpxFHBtBO3PA_P4-Mcg5Q"
 supabase: Client = create_client(url, key)    
 
 # CSV 파일 불러오기
-df = pd.read_csv('restaurant_cleaned_data.csv', encoding='utf-8')
+#df = pd.read_csv('restaurant_cleaned_data.csv', encoding='utf-8')
 
 
 st.title("날씨 + 위치 기반 음식점 추천🌨️")
