@@ -8,8 +8,8 @@ import psycopg2
 from supabase import create_client, Client
 import os
 
-url: str = "https://yamiretxhfjduvaktqhx.supabase.co"
-key: str = "sb_publishable_J4ipWe8Qp6JpxFHBtBO3PA_P4-Mcg5Q"
+url: str = os.getenv("SUPABASE_URL")
+key: str = os.getenv("SUPABASE_API_KEY")
 supabase: Client = create_client(url, key)
 
 st.title("날씨 + 위치 기반 음식점 추천🌨️")
@@ -25,7 +25,8 @@ def get_user_location():
 
 #날씨
 
-OPENWEATHER_API_KEY = "56dfd0f8d8a24c9b492d704b63ddb493"
+OPENWEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
+
 
 def fetch_weather(lat: float, lon: float):
     if not OPENWEATHER_API_KEY:
