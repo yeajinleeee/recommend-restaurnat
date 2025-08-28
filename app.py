@@ -7,7 +7,10 @@ import concurrent.futures
 import psycopg2
 from supabase import create_client, Client
 import os
+from dotenv import load_dotenv
 
+
+load_dotenv()
 url: str = os.getenv("SUPABASE_URL")
 key: str = os.getenv("SUPABASE_API_KEY")
 supabase: Client = create_client(url, key)
@@ -57,19 +60,23 @@ def display_weather(lat: float, lon: float):
 
 
 
-def display_restaurants(lat: float, lon: float):
-    st.subheader("반경 500m 이내 음식점 목록")
-    data = get_restaurants_nearby(lat, lon)
-    st.write(f"전체 행 개수: {len(data)}")
-    if data:
-        df = pd.DataFrame(data)
-        # distance 컬럼이 m 단위로 있으면 정렬/표시 개선
-        sort_key = "distance" if "distance" in df.columns else ("distance_m" if "distance_m" in df.columns else None)
-        if sort_key:
-            df = df.sort_values(sort_key, ascending=True)
-        st.dataframe(df, use_container_width=True)
-    else:
-        st.info("주변에 음식점이 없습니다.")
+def get_restaurant_within_500m_from_supabase(lat, lon):
+    response = (
+        supabase.rpc("get_restaurant_within_500m", {
+        "user_lat": lat,
+        "user_lng": lon
+        }).execute()
+        )
+    #response에 데이터 들어가있음
+
+    st.title("반경 1km 이내 음식점 목록")
+    st.write("다음은 주변 음식점 목록입니다:")
+    st.write(f"전체 행 개수: {len(response.data)}")
+    # st.write(response.data)
+
+    df = pd.DataFrame(response.data)
+
+    st.dataframe(df)
 
 
 # (선택) 지도 표시
@@ -96,7 +103,7 @@ def main():
     st.divider()
 
     # 음식점
-    display_restaurants(user_lat, user_lon)
+    get_restaurant_within_500m_from_supabase(seoul_lat, seoul_lon)
 
 if __name__ == "__main__":
     main()
