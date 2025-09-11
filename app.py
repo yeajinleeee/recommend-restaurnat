@@ -20,6 +20,7 @@ SUPABASE_URL: str = os.getenv("SUPABASE_URL")
 SUPABASE_KEY: str = os.getenv("SUPABASE_API_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
+#페이지 이름
 st.set_page_config(
     page_title="날씨 + 위치 기반 음식점 추천",
     page_icon="🍜",
@@ -52,11 +53,33 @@ html, body {background: var(--bg)!important;}
   padding:14px; height:100%; display:flex; flex-direction:column; gap:10px;
 }
 .card h4 {margin:0; font-size:16px}
-.card .meta {font-size:12px;가
+.card .meta {font-size:12px; color:var(--muted)}
+.btn {
+  display:inline-block; padding:8px 12px; border-radius:10px; border:1px solid var(--pri);
+  color:var(--pri); text-decoration:none; font-weight:700; transition:.15s;
+}
+.btn:hover {background:var(--pri); color:#fff;}
+.footerbar {
+  position:sticky; bottom:10px; background:var(--card); border:1px solid var(--card-bd);
+  border-radius:12px; padding:10px 14px; display:flex; gap:10px; justify-content:flex-end;
+}
+.tablecap {color:var(--muted); font-size:13px}
+.hero {
+  padding:16px; border-radius:16px;
+  background:linear-gradient(135deg, var(--pri-weak), transparent);
+  border:1px solid var(--card-bd);
+}
+</style>
+"""
+st.markdown(THEME_CSS, unsafe_allow_html=True)
+
+#제목
+st.title("날씨 + 위치 기반 음식점 추천🌨️")
+
+#히어로 헤더
 st.markdown("""
 <div class="hero">
-  <h2 style="margin:0">🍽️ 날씨·위치 맞춤 맛집 추천</h2>
-  <div class="small">지금 날씨에 어울리는 카테고리와 내 주변 맛집을 한눈에.</div>
+  <h2 style="margin:0">&#x1F37D; 날씨·위치 맞춤 맛집 추천</h2>
 </div>
 """, unsafe_allow_html=True)
 
