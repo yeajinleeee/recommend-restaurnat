@@ -20,6 +20,62 @@ SUPABASE_URL: str = os.getenv("SUPABASE_URL")
 SUPABASE_KEY: str = os.getenv("SUPABASE_API_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
+st.set_page_config(
+    page_title="날씨 + 위치 기반 음식점 추천",
+    page_icon="🍜",
+    layout="wide",
+)
+
+THEME_CSS = """
+<style>
+:root{
+  --pri:#2563eb; --pri-weak:#eef2ff;
+  --ok:#059669; --warn:#f59e0b;
+  --bg:#ffffff; --fg:#0f172a; --muted:#64748b;
+  --card:#ffffff; --card-bd:#e5e7eb; --chip:#f3f4f6;
+}
+@media (prefers-color-scheme: dark) {
+  :root{
+    --pri:#60a5fa; --pri-weak:#0b1220;
+    --ok:#34d399; --warn:#fbbf24;
+    --bg:#0b0f19; --fg:#e5e7eb; --muted:#94a3b8;
+    --card:#0f172a; --card-bd:#1f2937; --chip:#0b1220;
+  }
+}
+html, body, .stApp { background: var(--bg) !important; color: var(--fg); }
+
+.hero {
+  padding:18px 20px; border:1px solid var(--card-bd); border-radius:16px;
+  background:linear-gradient(135deg, var(--pri-weak), transparent);
+  margin-bottom:14px;
+}
+.section { padding:16px 18px; border:1px solid var(--card-bd); border-radius:14px; background:var(--card); margin-bottom:14px; }
+.section h3 { margin:0 0 6px 0; }
+.small { color:var(--muted); font-size:13px; }
+
+.badges{ display:flex; gap:8px; flex-wrap:wrap; }
+.badge{ display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px;
+  background:var(--chip); border:1px solid var(--card-bd); font-weight:600; font-size:12px; }
+
+.kpi{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+.kpi .card{ border:1px solid var(--card-bd); border-radius:12px; background:var(--card); padding:12px; }
+.kpi .label{ color:var(--muted); font-size:12px; }
+.kpi .value{ font-weight:800; font-size:18px; }
+
+.tablewrap{ border:1px solid var(--card-bd); border-radius:12px; overflow:hidden; }
+.tablewrap table{ width:100%; border-collapse:collapse; font-size:14px; }
+.tablewrap thead{ position:sticky; top:0; background:var(--chip); }
+.tablewrap th, .tablewrap td{ padding:9px 10px; border-bottom:1px solid var(--card-bd); }
+.tablewrap tbody tr:hover{ background:rgba(37,99,235,0.06); }
+
+.footerbar {
+  position:sticky; bottom:10px; background:var(--card); border:1px solid var(--card-bd);
+  border-radius:12px; padding:10px 12px; display:flex; gap:10px; justify-content:flex-end; margin-top:14px;
+}
+</style>
+"""
+st.markdown(THEME_CSS, unsafe_allow_html=True)
+
 st.title("날씨 + 위치 기반 음식점 추천🌨️")
 
 #임의 위치 설정 서울에서 실행할 경우 아래 코드 주석 처리 후 32번 줄 return None, None로 변경
