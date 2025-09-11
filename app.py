@@ -76,13 +76,6 @@ st.markdown(THEME_CSS, unsafe_allow_html=True)
 #제목
 st.title("날씨 + 위치 기반 음식점 추천🌨️")
 
-#히어로 헤더
-st.markdown("""
-<div class="hero">
-  <h2 style="margin:0">&#x1F37D; 날씨·위치 맞춤 맛집 추천</h2>
-</div>
-""", unsafe_allow_html=True)
-
 #임의 위치 설정 서울에서 실행할 경우 아래 코드 주석 처리 후 32번 줄 return None, None로 변경
 seoul_lat, seoul_lon = 37.5665, 126.9780
 
