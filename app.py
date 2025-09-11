@@ -26,7 +26,7 @@ st.set_page_config(
     layout="wide",
 )
 
-# ✨ 라이트/다크 공통 미니 테마 (파스텔 톤 + 카드/필 UI)
+# 라이트/다크 공통 미니 테마 (파스텔 톤 + 카드/필 UI)
 THEME_CSS = """
 <style>
 :root {
@@ -52,27 +52,13 @@ html, body {background: var(--bg)!important;}
   padding:14px; height:100%; display:flex; flex-direction:column; gap:10px;
 }
 .card h4 {margin:0; font-size:16px}
-.card .meta {font-size:12px; color:var(--muted)}
-.btn {
-  display:inline-block; padding:8px 12px; border-radius:10px; border:1px solid var(--pri);
-  color:var(--pri); text-decoration:none; font-weight:700; transition:.15s;
-}
-.btn:hover {background:var(--pri); color:#fff;}
-.footerbar {
-  position:sticky; bottom:10px; background:var(--card); border:1px solid var(--card-bd);
-  border-radius:12px; padding:10px 14px; display:flex; gap:10px; justify-content:flex-end;
-}
-.tablecap {color:var(--muted); font-size:13px}
-.hero {
-  padding:16px; border-radius:16px;
-  background:linear-gradient(135deg, var(--pri-weak), transparent);
-  border:1px solid var(--card-bd);
-}
-</style>
-"""
-st.markdown(THEME_CSS, unsafe_allow_html=True)
-
-st.title("날씨 + 위치 기반 음식점 추천🌨️")
+.card .meta {font-size:12px;가
+st.markdown("""
+<div class="hero">
+  <h2 style="margin:0">🍽️ 날씨·위치 맞춤 맛집 추천</h2>
+  <div class="small">지금 날씨에 어울리는 카테고리와 내 주변 맛집을 한눈에.</div>
+</div>
+""", unsafe_allow_html=True)
 
 #임의 위치 설정 서울에서 실행할 경우 아래 코드 주석 처리 후 32번 줄 return None, None로 변경
 seoul_lat, seoul_lon = 37.5665, 126.9780
