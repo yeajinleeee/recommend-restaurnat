@@ -26,51 +26,47 @@ st.set_page_config(
     layout="wide",
 )
 
+# ✨ 라이트/다크 공통 미니 테마 (파스텔 톤 + 카드/필 UI)
 THEME_CSS = """
 <style>
-:root{
-  --pri:#2563eb; --pri-weak:#eef2ff;
-  --ok:#059669; --warn:#f59e0b;
-  --bg:#ffffff; --fg:#0f172a; --muted:#64748b;
+:root {
+  --pri:#3b82f6; --pri-weak:#e8f0fe;
+  --ok:#10b981; --warn:#f59e0b; --bg:#ffffff; --muted:#6b7280;
   --card:#ffffff; --card-bd:#e5e7eb; --chip:#f3f4f6;
 }
-@media (prefers-color-scheme: dark) {
-  :root{
-    --pri:#60a5fa; --pri-weak:#0b1220;
-    --ok:#34d399; --warn:#fbbf24;
-    --bg:#0b0f19; --fg:#e5e7eb; --muted:#94a3b8;
-    --card:#0f172a; --card-bd:#1f2937; --chip:#0b1220;
-  }
+[data-theme="dark"] :root {
+  --pri:#60a5fa; --pri-weak:#1e293b;
+  --ok:#34d399; --warn:#fbbf24; --bg:#0b0f19; --muted:#94a3b8;
+  --card:#111827; --card-bd:#1f2937; --chip:#0b1220;
 }
-html, body, .stApp { background: var(--bg) !important; color: var(--fg); }
-
-.hero {
-  padding:18px 20px; border:1px solid var(--card-bd); border-radius:16px;
-  background:linear-gradient(135deg, var(--pri-weak), transparent);
-  margin-bottom:14px;
+html, body {background: var(--bg)!important;}
+.section {
+  padding:18px 22px; border:1px solid var(--card-bd); border-radius:14px; background:var(--card); margin-bottom:14px;
 }
-.section { padding:16px 18px; border:1px solid var(--card-bd); border-radius:14px; background:var(--card); margin-bottom:14px; }
-.section h3 { margin:0 0 6px 0; }
-.small { color:var(--muted); font-size:13px; }
-
-.badges{ display:flex; gap:8px; flex-wrap:wrap; }
-.badge{ display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px;
-  background:var(--chip); border:1px solid var(--card-bd); font-weight:600; font-size:12px; }
-
-.kpi{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
-.kpi .card{ border:1px solid var(--card-bd); border-radius:12px; background:var(--card); padding:12px; }
-.kpi .label{ color:var(--muted); font-size:12px; }
-.kpi .value{ font-weight:800; font-size:18px; }
-
-.tablewrap{ border:1px solid var(--card-bd); border-radius:12px; overflow:hidden; }
-.tablewrap table{ width:100%; border-collapse:collapse; font-size:14px; }
-.tablewrap thead{ position:sticky; top:0; background:var(--chip); }
-.tablewrap th, .tablewrap td{ padding:9px 10px; border-bottom:1px solid var(--card-bd); }
-.tablewrap tbody tr:hover{ background:rgba(37,99,235,0.06); }
-
+.badge {display:inline-block; padding:6px 10px; border-radius:999px; background:var(--pri-weak); color:#1f2937; font-weight:600; font-size:12px; margin-right:8px}
+.pills {display:flex; gap:8px; flex-wrap:wrap;}
+.pill {border:1px solid var(--card-bd); background:var(--chip); color:#111827; padding:8px 12px; border-radius:999px; cursor:pointer; font-weight:600}
+.pill.active {background:var(--pri); border-color:var(--pri); color:white}
+.card {
+  border:1px solid var(--card-bd); border-radius:16px; background:var(--card);
+  padding:14px; height:100%; display:flex; flex-direction:column; gap:10px;
+}
+.card h4 {margin:0; font-size:16px}
+.card .meta {font-size:12px; color:var(--muted)}
+.btn {
+  display:inline-block; padding:8px 12px; border-radius:10px; border:1px solid var(--pri);
+  color:var(--pri); text-decoration:none; font-weight:700; transition:.15s;
+}
+.btn:hover {background:var(--pri); color:#fff;}
 .footerbar {
   position:sticky; bottom:10px; background:var(--card); border:1px solid var(--card-bd);
-  border-radius:12px; padding:10px 12px; display:flex; gap:10px; justify-content:flex-end; margin-top:14px;
+  border-radius:12px; padding:10px 14px; display:flex; gap:10px; justify-content:flex-end;
+}
+.tablecap {color:var(--muted); font-size:13px}
+.hero {
+  padding:16px; border-radius:16px;
+  background:linear-gradient(135deg, var(--pri-weak), transparent);
+  border:1px solid var(--card-bd);
 }
 </style>
 """
