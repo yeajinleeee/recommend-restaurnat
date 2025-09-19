@@ -290,8 +290,9 @@ def main():
         st.markdown("""
         <div class="info-box">
             <h3>📍 현재 위치</h3>
+            st.write(f"위도: {user_lat:.4f}, 경도: {user_lon:.4f}")
         """, unsafe_allow_html=True)
-        st.write(f"위도: {user_lat:.4f}, 경도: {user_lon:.4f}")
+
         if st.button("위치 재설정"):
             # 위치 재설정 로직은 get_user_location() 호출로 이미 처리되나,
             # 명시적 새로고침을 위해 st.rerun()을 사용할 수 있습니다.
@@ -311,6 +312,12 @@ def main():
         st.markdown("""
         <div class="info-box">
             <h3>💡 추천 키워드</h3>
+        # mood 문자열을 쉼표로 분리하여 해시태그로 만듭니다.
+        mood_tags = [tag.strip() for tag in mood.split(',')]
+        for tag in mood_tags:
+            st.markdown(f'<p class="keyword"># {tag}</p>', unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+            
         """, unsafe_allow_html=True)
         # mood 문자열을 쉼표로 분리하여 해시태그로 만듭니다.
         mood_tags = [tag.strip() for tag in mood.split(',')]
