@@ -313,26 +313,12 @@ def main():
     with st.sidebar:
 
         # --- Box 1: 현재 위치 (수정됨) ---
-        st.markdown('<div class="info-box">', unsafe_allow_html=True)
-        
-        # 제목과 버튼을 한 줄에 넣기 위해 컬럼 생성
-        col1, col2 = st.columns([0.7, 0.3]) 
-        
-        with col1:
-            st.markdown("<h3>📍 현재 위치</h3>", unsafe_allow_html=True)
-            st.write(f"위도: {user_lat:.4f}, 경도: {user_lon:.4f}")
-    
-        with col2:
-            # 버튼을 CSS로 꾸미기 위해 div로 감쌉니다.
-            st.markdown('<div class="icon-button-container">', unsafe_allow_html=True)
-            if st.button("🎯", key="refresh_location"): # 🎯 아이콘 사용
-                del st.session_state.user_lat
-                del st.session_state.user_lon
-                st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
-            
-        st.markdown("</div>", unsafe_allow_html=True)
-
+        st.markdown(f"""
+        <div class="info-box">
+            <h3>📍 현재 위치</h3>
+            <p>위도: {user_lat:.4f}, 경도: {user_lon:.4f}</p>
+        </div>
+        """, unsafe_allow_html=True)
         
         # --- Box 2: 현재 날씨 ---
         st.markdown(f"""
