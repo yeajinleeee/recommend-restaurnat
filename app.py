@@ -293,10 +293,6 @@ def main():
         </div>
         """, unsafe_allow_html=True)
         
-        # 2. 버튼은 markdown 박스 밖에 독립적으로配置합니다.
-        if st.button("위치 재설정"):
-            st.rerun()
-
         # --- Box 2: 현재 날씨 ---
         st.markdown(f"""
         <div class="info-box">
@@ -307,15 +303,19 @@ def main():
         """, unsafe_allow_html=True)
 
         # --- Box 3: 추천 키워드 ---
-        st.markdown("""
+
+        # mood 문자열을 쉼표로 분리합니다.
+        mood_tags = [tag.strip() for tag in mood.split(',')]
+        # 각 태그를 <p>...</p> HTML 태그로 변환하여 리스트로 만듭니다.
+        keywords_html = "".join([f'<p class="keyword"># {tag}</p>' for tag in mood_tags])
+        
+        # 2. 완성된 HTML 문자열을 f-string을 이용해 st.markdown으로 한 번에 출력합니다.
+        st.markdown(f"""
         <div class="info-box">
             <h3>💡 추천 키워드</h3>
+            {keywords_html}
+        </div>
         """, unsafe_allow_html=True)
-        # mood 문자열을 쉼표로 분리하여 해시태그로 만듭니다.
-        mood_tags = [tag.strip() for tag in mood.split(',')]
-        for tag in mood_tags:
-            st.markdown(f'<p class="keyword"># {tag}</p>', unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
 
         st.divider()
 
