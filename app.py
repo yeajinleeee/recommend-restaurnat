@@ -292,6 +292,7 @@ def pick_one_restaurant(frame: pd.DataFrame) -> Tuple[pd.Series | None, str]:
 def main():
     """Streamlit 앱의 메인 실행 함수"""
     st.title("날씨 + 위치 기반 음식점 추천 🌨️")
+    st.divider()
 
     # --- 데이터 로드 (초기에 한 번만 실행) ---
     user_lat, user_lon = get_user_location()
