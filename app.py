@@ -58,6 +58,33 @@ IMPROVED_UI_CSS = """
     }
     .info-box p, .info-box .keyword { margin: 0; font-size: 0.95rem; }
     .info-box .keyword { color: #007bff; font-weight: 600; padding-top: 5px; }
+
+    /* 아이콘 버튼을 감싸는 컨테이너 */
+.stButton>button {
+    width: 100%; /* 버튼 너비를 채우도록 설정 */
+}
+.icon-button-container {
+    display: flex;
+    justify-content: flex-end; /* 버튼을 오른쪽으로 정렬 */
+    align-items: center;
+}
+
+/* 아이콘 버튼 자체의 스타일 */
+.icon-button-container button {
+    width: 38px !important;      /* 너비 */
+    height: 38px !important;     /* 높이 */
+    padding: 0 !important;       /* 내부 여백 제거 */
+    border: 1px solid #DCDCDC !important; /* 테두리 */
+    border-radius: 5px !important; /* 모서리 둥글게 */
+    background-color: #FAFAFA !important; /* 배경색 */
+    font-size: 20px;             /* 아이콘(이모지) 크기 */
+    line-height: 1;              /* 줄 간격 */
+}
+/* 버튼에 마우스를 올렸을 때 스타일 */
+.icon-button-container button:hover {
+    border-color: #A0A0A0 !important;
+    background-color: #F0F0F0 !important;
+}
 </style>
 """
 st.markdown(IMPROVED_UI_CSS, unsafe_allow_html=True)
@@ -285,13 +312,27 @@ def main():
    # ----------------- 사이드바 구성 -----------------
     with st.sidebar:
 
-        # --- Box 1: 현재 위치 ---
-        st.markdown(f"""
-        <div class="info-box">
-            <h3>📍 현재 위치</h3>
-            <p>위도: {user_lat:.4f}, 경도: {user_lon:.4f}</p>
-        </div>
-        """, unsafe_allow_html=True)
+        # --- Box 1: 현재 위치 (수정됨) ---
+        st.markdown('<div class="info-box">', unsafe_allow_html=True)
+        
+        # 제목과 버튼을 한 줄에 넣기 위해 컬럼 생성
+        col1, col2 = st.columns([0.7, 0.3]) 
+        
+        with col1:
+            st.markdown("<h3>📍 현재 위치</h3>", unsafe_allow_html=True)
+            st.write(f"위도: {user_lat:.4f}, 경도: {user_lon:.4f}")
+    
+        with col2:
+            # 버튼을 CSS로 꾸미기 위해 div로 감쌉니다.
+            st.markdown('<div class="icon-button-container">', unsafe_allow_html=True)
+            if st.button("🎯", key="refresh_location"): # 🎯 아이콘 사용
+                del st.session_state.user_lat
+                del st.session_state.user_lon
+                st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+        st.markdown("</div>", unsafe_allow_html=True)
+
         
         # --- Box 2: 현재 날씨 ---
         st.markdown(f"""
