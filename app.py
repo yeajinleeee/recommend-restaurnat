@@ -14,6 +14,7 @@ import pydeck as pdk
 from typing import Tuple, List
 import math
 
+st.markdown("#page1")
 
 load_dotenv()
 SUPABASE_URL: str = os.getenv("SUPABASE_URL")
