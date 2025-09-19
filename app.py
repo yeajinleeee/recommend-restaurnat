@@ -14,12 +14,71 @@ import pydeck as pdk
 from typing import Tuple, List
 import math
 
-st.markdown("#page1")
+
 
 load_dotenv()
 SUPABASE_URL: str = os.getenv("SUPABASE_URL")
 SUPABASE_KEY: str = os.getenv("SUPABASE_API_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+
+# Streamlit 페이지의 기본 설정을 구성합니다.
+st.set_page_config(
+    page_title="날씨 + 위치 기반 음식점 추천", # 브라우저 탭에 표시될 제목
+    page_icon="🍜",                         # 브라우저 탭에 표시될 아이콘
+    layout="wide",                         # 페이지 레이아웃을 넓게 설정
+)
+
+# ---------------------------------
+# 3. UI 디자인을 위한 CSS 스타일
+# ---------------------------------
+.
+IMPROVED_UI_CSS = """
+<style>
+    /* 전체 페이지 배경 및 기본 폰트 설정 */
+    .stApp { background-color: #000000; font-family: 'Pretendard', sans-serif; }
+    
+    /* 헤더 스타일 */
+    .header { background-color: #F3F3F3; margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between; }
+    .header h1 { font-size: 2rem; font-weight: 700; margin: 0; color: #333; }
+    .header-icon { font-size: 2.5rem; }
+    
+    /* 좌측 정보 패널 컨테이너 */
+    .info-container { background-color: white; border-radius: 10px; padding: 25px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); height: 100%; }
+    .info-box { margin-bottom: 25px; }
+    .info-box-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .info-box-header h3 { font-size: 1.1rem; font-weight: 600; margin: 0; }
+    .info-box-content p { margin: 0; font-size: 0.95rem; line-height: 1.5; color: #555; }
+    
+    /* 추천 키워드 스타일 */
+    .keyword-box { display: flex; flex-direction: column; gap: 8px; }
+    .keyword { font-size: 1rem; font-weight: 600; color: #007bff; }
+    
+    /* 우측 메인 콘텐츠 */
+    .main-content { padding-left: 20px; }
+    .main-content h2 { font-size: 1.2rem; font-weight: 600; margin-top: 0; }
+    
+    /* 레스토랑 목록 스크롤 컨테이너 */
+    .restaurant-list-container { height: 400px; overflow-y: auto; border: 1px solid #e0e0e0; border-radius: 8px; padding: 10px; background-color: #fff; }
+    
+    /* 커스텀 스크롤바 */
+    .restaurant-list-container::-webkit-scrollbar { width: 8px; }
+    .restaurant-list-container::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+    .restaurant-list-container::-webkit-scrollbar-thumb { background: #e57373; border-radius: 10px; }
+    .restaurant-list-container::-webkit-scrollbar-thumb:hover { background: #d32f2f; }
+    
+    /* 레스토랑 각 항목 스타일 */
+    .restaurant-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; border-bottom: 1px solid #eee; }
+    .restaurant-item:last-child { border-bottom: none; }
+    .restaurant-item a { text-decoration: none; color: #007bff; font-weight: 500; }
+    .restaurant-item a:hover { text-decoration: underline; }
+    .restaurant-item .distance { color: #666; font-size: 0.9rem; }
+    
+    /* "다음" 버튼을 오른쪽으로 정렬 */
+    .stButton { display: flex; justify-content: flex-end; margin-top: 20px; }
+</style>
+"""
+st.markdown(IMPROVED_UI_CSS, unsafe_allow_html=True)
 
 st.title("날씨 + 위치 기반 음식점 추천🌨️")
 
