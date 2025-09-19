@@ -36,7 +36,7 @@ st.set_page_config(
 IMPROVED_UI_CSS = """
 <style>
     /* 전체 페이지 배경 및 기본 폰트 설정 */
-    .stApp { background-color: #000000; font-family: 'Pretendard', sans-serif; }
+    .stApp { background-color: #FFFFFF; font-family: 'Pretendard', sans-serif; }
     
     /* 헤더 스타일 */
     .header { background-color: #F3F3F3; margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between; }
