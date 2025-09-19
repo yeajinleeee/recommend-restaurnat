@@ -286,16 +286,16 @@ def main():
     with st.sidebar:
 
         # --- Box 1: 현재 위치 ---
-        st.markdown("""
+        st.markdown(f"""
         <div class="info-box">
             <h3>📍 현재 위치</h3>
-            <p>(f"위도: {user_lat:.4f}, 경도: {user_lon:.4f}")</p>
+            <p>위도: {user_lat:.4f}, 경도: {user_lon:.4f}</p>
+        </div>
         """, unsafe_allow_html=True)
+        
+        # 2. 버튼은 markdown 박스 밖에 독립적으로配置합니다.
         if st.button("위치 재설정"):
-            # 위치 재설정 로직은 get_user_location() 호출로 이미 처리되나,
-            # 명시적 새로고침을 위해 st.rerun()을 사용할 수 있습니다.
             st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
 
         # --- Box 2: 현재 날씨 ---
         st.markdown(f"""
