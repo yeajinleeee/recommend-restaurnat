@@ -85,6 +85,33 @@ IMPROVED_UI_CSS = """
     border-color: #A0A0A0 !important;
     background-color: #F0F0F0 !important;
 }
+
+/* 제목 전체를 감싸는 컨테이너 스타일 */
+.title-container {
+    background-color: #f0f2f5;      /* 배경색: 연한 회색 */
+    padding: 1rem 1.5rem;           /* 내부 여백 (상하 1rem, 좌우 1.5rem) */
+    border-bottom: 3px solid #e57373; /* 아래쪽 붉은색 강조선 */
+    margin-bottom: 2rem;            /* 제목 아래의 여백 */
+    
+    /* 제목 텍스트와 아이콘을 나란히 배치하고 세로 중앙 정렬 */
+    display: flex;
+    align-items: center;
+    gap: 15px; /* 텍스트와 아이콘 사이 간격 */
+}
+
+/* 제목 텍스트(h1) 스타일 */
+.title-container h1 {
+    font-size: 1.8rem;   /* 글자 크기 */
+    font-weight: 700;    /* 글자 굵기 */
+    color: #333;        /* 글자 색상 */
+    margin: 0;           /* 불필요한 여백 제거 */
+    padding: 0;
+}
+
+/* 아이콘 스타일 */
+.title-container .icon {
+    font-size: 1.8rem; /* 아이콘 크기를 글자와 맞춤 */
+}
 </style>
 """
 st.markdown(IMPROVED_UI_CSS, unsafe_allow_html=True)
@@ -291,8 +318,12 @@ def pick_one_restaurant(frame: pd.DataFrame) -> Tuple[pd.Series | None, str]:
 # ---------------------------------
 def main():
     """Streamlit 앱의 메인 실행 함수"""
-    st.title("날씨 + 위치 기반 음식점 추천 🌨️")
-    st.divider()
+    st.markdown("""
+    <div class="title-container">
+        <h1>날씨 + 위치 기반 음식점 추천</h1>
+        <span class="icon">🌨️</span>
+    </div>
+    """, unsafe_allow_html=True)
 
     # --- 데이터 로드 (초기에 한 번만 실행) ---
     user_lat, user_lon = get_user_location()
