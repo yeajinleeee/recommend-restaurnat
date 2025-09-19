@@ -289,7 +289,7 @@ def main():
         st.markdown("""
         <div class="info-box">
             <h3>📍 현재 위치</h3>
-            <h3>st.write(f"위도: {user_lat:.4f}, 경도: {user_lon:.4f}")</h3>
+            <p>(f"위도: {user_lat:.4f}, 경도: {user_lon:.4f}")</p>
         """, unsafe_allow_html=True)
         if st.button("위치 재설정"):
             # 위치 재설정 로직은 get_user_location() 호출로 이미 처리되나,
