@@ -317,25 +317,27 @@ def main():
         </div>
         """, unsafe_allow_html=True)
 
-        st.divider()
 
 
-    # ----------------- 메인 콘텐츠 -----------------
+     # ----------------- 메인 콘텐츠 (필터 + 결과) -----------------
     
-      # --- 필터 컨트롤 ---
-        st.write("지금 날씨에 추천 드리는 카테고리입니다.")
-        choice = st.radio("선택해 주세요 👇", options=opts)
-        
-        # 1차+2차 필터링: 날씨에 맞는 식당 중 사용자가 선택한 카테고리 필터
-        wx_df = filter_by_category_tf(all_df, choice)
-
-        # 2.5차 필터링: 업태 선택 (결과가 있을 때만 표시)
-        if not wx_df.empty:
-            final_filtered_df, _ = select_and_filter_by_business_type(wx_df)
-        else:
-            final_filtered_df = pd.DataFrame()
+    # --- 필터 컨트롤 (이제 메인 화면에 위치) ---
+    st.subheader("지금 날씨에 어울리는 음식 카테고리")
+    choice = st.radio("선택해 주세요 👇", options=opts, horizontal=True) # 가로로 표시하여 공간 활용
     
+    # 1차+2차 필터링: 사용자가 선택한 카테고리 필터
+    wx_df = filter_by_category_tf(all_df, choice)
 
+    # 2.5차 필터링: 업태 선택 (결과가 있을 때만 표시)
+    if not wx_df.empty:
+        final_filtered_df, _ = select_and_filter_by_business_type(wx_df)
+    else:
+        final_filtered_df = pd.DataFrame()
+
+    st.divider()
+    
+    # --- 결과 표시 ---
+    
     st.header(f"'{choice}' 추천 목록")
     st.write(f"총 {len(final_filtered_df)}개의 음식점을 찾았습니다.")
 
