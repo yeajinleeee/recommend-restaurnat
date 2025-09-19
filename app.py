@@ -282,24 +282,22 @@ def main():
     # 주변 500m 내 모든 음식점 데이터 로드
     all_df = get_restaurant_within_500m_from_supabase(user_lat, user_lon)
 
-    # ----------------- 사이드바 구성 -----------------
+   # ----------------- 사이드바 구성 -----------------
     with st.sidebar:
-        st.header("탐색 및 필터")
 
         # --- Box 1: 현재 위치 ---
         st.markdown("""
         <div class="info-box">
             <h3>📍 현재 위치</h3>
-            st.write(f"위도: {user_lat:.4f}, 경도: {user_lon:.4f}")
+            <h3>st.write(f"위도: {user_lat:.4f}, 경도: {user_lon:.4f}")</h3>
         """, unsafe_allow_html=True)
-
         if st.button("위치 재설정"):
             # 위치 재설정 로직은 get_user_location() 호출로 이미 처리되나,
             # 명시적 새로고침을 위해 st.rerun()을 사용할 수 있습니다.
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
-        # --- Box 2: 현재 날씨 --- (이 부분은 올바르게 되어 있으므로 그대로 둡니다)
+        # --- Box 2: 현재 날씨 ---
         st.markdown(f"""
         <div class="info-box">
             <h3>🌤️ 현재 날씨</h3>
@@ -307,28 +305,24 @@ def main():
             <p>기온: {w.get('temperature', 'N/A')}°C</p>
         </div>
         """, unsafe_allow_html=True)
-        
-        
-        # --- Box 3: 추천 키워드 --- (아래와 같이 수정합니다)
-        
-        # 1. 박스와 제목을 먼저 출력합니다.
+
+        # --- Box 3: 추천 키워드 ---
         st.markdown("""
         <div class="info-box">
             <h3>💡 추천 키워드</h3>
-            """, unsafe_allow_html=True)
-        
-        # 2. Python 로직을 실행하여 키워드를 하나씩 출력합니다.
+        """, unsafe_allow_html=True)
         # mood 문자열을 쉼표로 분리하여 해시태그로 만듭니다.
         mood_tags = [tag.strip() for tag in mood.split(',')]
         for tag in mood_tags:
             st.markdown(f'<p class="keyword"># {tag}</p>', unsafe_allow_html=True)
-        
-        # 3. 박스를 닫습니다.
         st.markdown("</div>", unsafe_allow_html=True)
-        
+
         st.divider()
 
-        # --- 필터 컨트롤 ---
+
+    # ----------------- 메인 콘텐츠 -----------------
+    
+      # --- 필터 컨트롤 ---
         st.write("지금 날씨에 추천 드리는 카테고리입니다.")
         choice = st.radio("선택해 주세요 👇", options=opts)
         
@@ -340,9 +334,8 @@ def main():
             final_filtered_df, _ = select_and_filter_by_business_type(wx_df)
         else:
             final_filtered_df = pd.DataFrame()
-
-    # ----------------- 메인 콘텐츠 -----------------
     
+
     st.header(f"'{choice}' 추천 목록")
     st.write(f"총 {len(final_filtered_df)}개의 음식점을 찾았습니다.")
 
