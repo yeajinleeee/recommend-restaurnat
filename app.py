@@ -300,34 +300,32 @@ def main():
         st.markdown("</div>", unsafe_allow_html=True)
 
         # --- Box 2: 현재 날씨 --- (이 부분은 올바르게 되어 있으므로 그대로 둡니다)
-st.markdown(f"""
-<div class="info-box">
-    <h3>🌤️ 현재 날씨</h3>
-    <p><b>{w.get('description', 'N/A')}</b></p>
-    <p>기온: {w.get('temperature', 'N/A')}°C</p>
-</div>
-""", unsafe_allow_html=True)
-
-
-# --- Box 3: 추천 키워드 --- (아래와 같이 수정합니다)
-
-# 1. 박스와 제목을 먼저 출력합니다.
-st.markdown("""
-<div class="info-box">
-    <h3>💡 추천 키워드</h3>
-    """, unsafe_allow_html=True)
-
-# 2. Python 로직을 실행하여 키워드를 하나씩 출력합니다.
-# mood 문자열을 쉼표로 분리하여 해시태그로 만듭니다.
-mood_tags = [tag.strip() for tag in mood.split(',')]
-for tag in mood_tags:
-    st.markdown(f'<p class="keyword"># {tag}</p>', unsafe_allow_html=True)
-
-# 3. 박스를 닫습니다.
-st.markdown("</div>", unsafe_allow_html=True)
-
-st.divider()
-
+        st.markdown(f"""
+        <div class="info-box">
+            <h3>🌤️ 현재 날씨</h3>
+            <p><b>{w.get('description', 'N/A')}</b></p>
+            <p>기온: {w.get('temperature', 'N/A')}°C</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        
+        # --- Box 3: 추천 키워드 --- (아래와 같이 수정합니다)
+        
+        # 1. 박스와 제목을 먼저 출력합니다.
+        st.markdown("""
+        <div class="info-box">
+            <h3>💡 추천 키워드</h3>
+            """, unsafe_allow_html=True)
+        
+        # 2. Python 로직을 실행하여 키워드를 하나씩 출력합니다.
+        # mood 문자열을 쉼표로 분리하여 해시태그로 만듭니다.
+        mood_tags = [tag.strip() for tag in mood.split(',')]
+        for tag in mood_tags:
+            st.markdown(f'<p class="keyword"># {tag}</p>', unsafe_allow_html=True)
+        
+        # 3. 박스를 닫습니다.
+        st.markdown("</div>", unsafe_allow_html=True)
+        
         st.divider()
 
         # --- 필터 컨트롤 ---
