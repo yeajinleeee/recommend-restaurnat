@@ -89,7 +89,6 @@ IMPROVED_UI_CSS = """
 /* 제목 전체를 감싸는 컨테이너 스타일 */
 .title-container {
     background-color: #f0f2f5;      /* 배경색: 연한 회색 */
-    padding: 1rem 1.5rem;           /* 내부 여백 (상하 1rem, 좌우 1.5rem) */
     border-bottom: 3px solid #e57373; /* 아래쪽 붉은색 강조선 */
     margin-bottom: 2rem;            /* 제목 아래의 여백 */
     
