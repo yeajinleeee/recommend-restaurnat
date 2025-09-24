@@ -363,10 +363,6 @@ def main():
 
      # ----------------- 메인 콘텐츠 (필터 + 결과) -----------------
     
-    # --- 세션 상태 초기화 ---
-if "page" not in st.session_state:
-    st.session_state.page = "page1"
-
 # --- page1 ---
 if st.session_state.page == "page1":
     st.subheader("지금 날씨에 어울리는 음식 카테고리")
