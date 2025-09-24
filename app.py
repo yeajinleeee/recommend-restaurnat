@@ -363,49 +363,65 @@ def main():
 
      # ----------------- 메인 콘텐츠 (필터 + 결과) -----------------
     
-    # --- 필터 컨트롤 (이제 메인 화면에 위치) ---
+    # --- 세션 상태 초기화 ---
+if "page" not in st.session_state:
+    st.session_state.page = "page1"
+
+# --- page1 ---
+if st.session_state.page == "page1":
     st.subheader("지금 날씨에 어울리는 음식 카테고리")
-    choice = st.radio("선택해 주세요 👇", options=opts, horizontal=True) # 가로로 표시하여 공간 활용
-    
-    # 1차+2차 필터링: 사용자가 선택한 카테고리 필터
+    opts = ["한식", "중식", "일식", "양식"]
+    choice = st.radio("선택해 주세요 👇", options=opts, horizontal=True)
+
+    # 1차 필터링
     wx_df = filter_by_category_tf(all_df, choice)
 
-    # 2.5차 필터링: 업태 선택 (결과가 있을 때만 표시)
+    if st.button("다음으로 ➡️"):
+        st.session_state.choice = choice
+        st.session_state.page = "page2"
+        st.rerun()
+
+# --- page2 ---
+elif st.session_state.page == "page2":
+    st.subheader("업태 선택")
+
+    choice = st.session_state.get("choice", None)
+    if choice is None:
+        st.warning("Page1에서 먼저 선택해 주세요.")
+        if st.button("⬅️ 이전으로"):
+            st.session_state.page = "page1"
+            st.rerun()
+        st.stop()
+
+    wx_df = filter_by_category_tf(all_df, choice)
+
     if not wx_df.empty:
         final_filtered_df, _ = select_and_filter_by_business_type(wx_df)
     else:
         final_filtered_df = pd.DataFrame()
 
-    st.divider()
-    
-    # --- 결과 표시 ---
-    
-    st.header(f"'{choice}' 추천 목록")
-    st.write(f"총 {len(final_filtered_df)}개의 음식점을 찾았습니다.")
+    if st.button("다음으로 ➡️"):
+        st.session_state.filtered = final_filtered_df
+        st.session_state.page = "page3"
+        st.rerun()
 
-    # 페이지네이션 테이블로 필터링된 결과 표시
-    filtered_page_df = render_paginated_clickable_name_table(final_filtered_df, table_key=f"filtered_{choice}")
-    
-    st.subheader("지도에서 보기")
-    # 현재 페이지에 표시된 식당들만 지도에 표시
-    render_map_with_markers(user_lat, user_lon, filtered_page_df)
+    if st.button("⬅️ 이전으로"):
+        st.session_state.page = "page1"
+        st.rerun()
 
-    # 최종 선택 섹션
-    if not filtered_page_df.empty:
-        st.divider()
-        st.subheader("하나를 골라볼까요?")
-        picked_row, picked_label = pick_one_restaurant(filtered_page_df)
+# --- page3 ---
+elif st.session_state.page == "page3":
+    st.subheader("결과 확인")
 
-        if st.button("맛집을 정했어요!"):
-            if picked_row is not None:
-                name = picked_row.get("name", "이름 없음")
-                map_link = picked_row.get("map_link")
-                if pd.notna(map_link):
-                    st.success(f"🎉 **선택 완료!** [{name}]({map_link}) 맛있게 드세요!")
-                else:
-                    st.success(f"🎉 **선택 완료!** {name} 맛있게 드세요!")
-            else:
-                st.warning("먼저 식당을 하나 선택해 주세요.")
+    final_filtered_df = st.session_state.get("filtered", pd.DataFrame())
+    if final_filtered_df.empty:
+        st.warning("Page2에서 먼저 필터링해 주세요.")
+    else:
+        st.dataframe(final_filtered_df)
+
+    if st.button("⬅️ 이전으로"):
+        st.session_state.page = "page2"
+        st.rerun()
 
 # 스크립트 실행
 if __name__ == "__main__":
