@@ -1,10 +1,6 @@
-# ---------------------------------
-# 라이브러리 임포트
-# ---------------------------------
 import streamlit as st
 from streamlit_geolocation import streamlit_geolocation
 import pandas as pd
-from haversine import haversine
 import requests
 from supabase import create_client, Client
 import os
@@ -12,33 +8,31 @@ from dotenv import load_dotenv
 import re
 import math
 import pydeck as pdk
-from typing import Tuple, List
 
-# ---------------------------------
-# 환경 설정
-# ---------------------------------
+# ───────────────────────────────
+# 환경 변수 설정
+# ───────────────────────────────
 load_dotenv()
 SUPABASE_URL: str = os.getenv("SUPABASE_URL")
 SUPABASE_KEY: str = os.getenv("SUPABASE_API_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 OPENWEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
 
-st.set_page_config(page_title="날씨 + 위치 기반 음식점 추천", layout="wide")
+st.set_page_config(page_title="날씨 + 위치 기반 음식점 추천", page_icon="🍜", layout="wide")
 
-# ---------------------------------
-# 위치 가져오기
-# ---------------------------------
+# ───────────────────────────────
+# 위치 관련
+# ───────────────────────────────
 seoul_lat, seoul_lon = 37.5665, 126.9780
-
 def get_user_location():
     loc = streamlit_geolocation()
     if not loc or loc.get("latitude") is None or loc.get("longitude") is None:
         return seoul_lat, seoul_lon
     return float(loc["latitude"]), float(loc["longitude"])
 
-# ---------------------------------
-# 카테고리 매핑 처리
-# ---------------------------------
+# ───────────────────────────────
+# 카테고리 이름 매핑
+# ───────────────────────────────
 CATEGORY_ALIAS = {
     "시원한 한끼": "시원한 음식",
     "술 한잔 하기 좋은 날": "술 한잔 하기 좋은날",
@@ -46,14 +40,13 @@ CATEGORY_ALIAS = {
     "패스트푸드/배달": "패스트푸드",
     "헤산물/생선요리": "해산물/생선요리",
 }
-
 def norm_cat(name: str) -> str:
     return CATEGORY_ALIAS.get(name, name)
 
 def _normalize_label(s: str) -> str:
     if s is None: return ""
     s = str(s).lower()
-    return re.sub(r"[\s/_\-()]+", "", s)
+    return re.sub(r"[\s/_\\-()]+", "", s)
 
 def coerce_tf_bool(frame: pd.DataFrame) -> pd.DataFrame:
     for col in frame.columns:
@@ -61,16 +54,12 @@ def coerce_tf_bool(frame: pd.DataFrame) -> pd.DataFrame:
         if frame[col].dtype == object:
             vals = frame[col].astype(str).str.strip().str.upper()
             if vals.isin(["TRUE","FALSE","1","0","", "NAN"]).mean() > 0.8:
-                frame[col] = vals.map({
-                    "TRUE": True, "FALSE": False,
-                    "1": True, "0": False
-                }).fillna(False)
+                frame[col] = vals.map({"TRUE": True,"FALSE": False,"1": True,"0": False}).fillna(False)
     return frame
 
 def resolve_tf_column(frame: pd.DataFrame, expected_label: str) -> str | None:
     expected = norm_cat(expected_label)
-    if expected in frame.columns:
-        return expected
+    if expected in frame.columns: return expected
     want = _normalize_label(expected)
     normalized = {str(c): _normalize_label(str(c)) for c in frame.columns}
     for col, key in normalized.items():
@@ -79,9 +68,9 @@ def resolve_tf_column(frame: pd.DataFrame, expected_label: str) -> str | None:
         if want in key: return col
     return None
 
-# ---------------------------------
-# 날씨 관련 설정
-# ---------------------------------
+# ───────────────────────────────
+# 날씨
+# ───────────────────────────────
 WX_GROUPS = {
     "클리어": [800],
     "구름": [801, 802, 803, 804],
@@ -92,183 +81,136 @@ WX_GROUPS = {
     "분위기": [701, 711, 721, 731, 741, 751, 761, 762],
 }
 WX_RECO = {
-    "클리어": {
-        "mood": "야외활동, 기분전환, 걷기 좋은 날",
-        "cats": ["이국적인 음식","디저트/카페","술 한잔 하기 좋은 날","가볍게 간단히","시원한 음식","해산물/생선요리"],
-    },
-    "구름": {
-        "mood": "실내 중심, 무거운 분위기로 인한 편안함, 든든함 추구",
-        "cats": ["든든한 한끼","뜨끈한 국물","디저트/카페","시원한 한끼","해산물/생선요리"],
-    },
-    "비": {
-        "mood": "외출 불편, 따뜻하거나 자극적인 음식",
-        "cats": ["뜨끈한 국물","매콤한 음식","술 한잔 하기 좋은 날","패스트푸드/배달","시원한 한끼"],
-    },
-    "이슬비": {
-        "mood": "활동 가능하지만 귀찮음, 정적이거나 가벼운 공간",
-        "cats": ["디저트/카페","가볍게 간단히","건강/채식/특수식단","해산물/생선요리"],
-    },
-    "뇌우": {
-        "mood": "외출 최소화, 실내고정",
-        "cats": ["육류구이/고기파티","든든한 한끼","패스트푸드/배달"],
-    },
-    "눈": {
-        "mood": "실내, 정적인 장소, 감성적, 따뜻함 추구",
-        "cats": ["뜨끈한 국물","육류구이/고기파티","가족/단체회식","디저트/카페","해산물/생선요리"],
-    },
-    "분위기": {
-        "mood": "안개/먼지 등: 건강 고려, 따뜻한 국물, 배달 선호",
-        "cats": ["건강/채식/특수식단","뜨끈한 국물","패스트푸드/배달"],
-    },
+    "클리어": {"mood":"야외활동, 기분전환, 걷기 좋은 날",
+               "cats":["이국적인 음식","디저트/카페","술 한잔 하기 좋은 날","가볍게 간단히","시원한 음식","해산물/생선요리"]},
+    "구름": {"mood":"실내 중심, 편안함, 든든함 추구",
+             "cats":["든든한 한끼","뜨끈한 국물","디저트/카페","시원한 한끼","해산물/생선요리"]},
+    "비": {"mood":"외출 불편, 따뜻하거나 자극적인 음식",
+           "cats":["뜨끈한 국물","매콤한 음식","술 한잔 하기 좋은 날","패스트푸드/배달","시원한 한끼"]},
+    "이슬비": {"mood":"활동 가능하지만 귀찮음",
+               "cats":["디저트/카페","가볍게 간단히","건강/채식/특수식단","해산물/생선요리"]},
+    "뇌우": {"mood":"외출 최소화, 실내 고정",
+             "cats":["육류구이/고기파티","든든한 한끼","패스트푸드/배달"]},
+    "눈": {"mood":"실내, 감성적, 따뜻함 추구",
+           "cats":["뜨끈한 국물","육류구이/고기파티","가족/단체회식","디저트/카페","해산물/생선요리"]},
+    "분위기": {"mood":"안개/먼지 등 건강 고려",
+              "cats":["건강/채식/특수식단","뜨끈한 국물","패스트푸드/배달"]},
 }
-
 def weather_group_from_id(weather_id: int) -> str:
-    for group_name, codes in WX_GROUPS.items():
-        if int(weather_id) in codes:
-            return group_name
+    for g,codes in WX_GROUPS.items():
+        if int(weather_id) in codes: return g
     return "구름"
 
-def recommended_categories_from_group(group_name: str, top_k: int | None = None):
+def recommended_categories_from_group(group_name: str):
     cats = [norm_cat(c) for c in WX_RECO[group_name]["cats"]]
     mood = WX_RECO[group_name]["mood"]
-    return (cats, mood) if top_k is None else (cats[:top_k], mood)
+    return cats, mood
 
-def fetch_weather(weather_lat: float, weather_lon: float) -> dict:
-    weather_url = f"https://api.openweathermap.org/data/2.5/weather?lat={weather_lat}&lon={weather_lon}&appid={OPENWEATHER_API_KEY}&units=metric&lang=kr"
-    res = requests.get(weather_url, timeout=10)
-    res.raise_for_status()
+def fetch_weather(lat: float, lon: float) -> dict:
+    url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={OPENWEATHER_API_KEY}&units=metric&lang=kr"
+    res = requests.get(url, timeout=10)
     data = res.json()
-    return {
-        "id": data["weather"][0]["id"],
-        "description": data["weather"][0]["description"],
-        "temperature": data["main"]["temp"]
-    }
+    return {"id":data["weather"][0]["id"],"description":data["weather"][0]["description"],"temperature":data["main"]["temp"]}
 
-# ---------------------------------
-# Supabase DB
-# ---------------------------------
+# ───────────────────────────────
+# DB
+# ───────────────────────────────
 def get_restaurant_within_500m_from_supabase(lat: float, lon: float):
     try:
-        response = supabase.rpc("get_restaurant_within_500m", {
-            "user_lat": lat, "user_lng": lon
-        }).execute()
-        if not response or response.data is None or len(response.data) == 0:
-            return pd.DataFrame()
+        response = supabase.rpc("get_restaurant_within_500m", {"user_lat": lat, "user_lng": lon}).execute()
+        if not response or response.data is None: return pd.DataFrame()
         return pd.DataFrame(response.data)
-    except Exception as e:
-        st.error(f"음식점 데이터를 불러오지 못했습니다. ({e})")
-        return pd.DataFrame()
+    except: return pd.DataFrame()
 
-# ---------------------------------
-# 필터 & 렌더링 함수
-# ---------------------------------
-def filter_by_category_tf(frame: pd.DataFrame, theme: str) -> pd.DataFrame:
-    if frame is None or frame.empty:
-        return pd.DataFrame()
-    frame = coerce_tf_bool(frame)
-    col_name = resolve_tf_column(frame, theme)
-    if not col_name: return pd.DataFrame()
-    out = frame[frame[col_name] == True].copy()
-    if "distance_m" in out.columns:
-        out = out.sort_values("distance_m")
-    return out
-
-def render_scroll_table(frame: pd.DataFrame, height: int = 250):
-    if frame is None or frame.empty:
+# ───────────────────────────────
+# 렌더링
+# ───────────────────────────────
+def render_scroll_table(frame: pd.DataFrame, height=250):
+    if frame.empty:
         st.info("표시할 식당이 없습니다.")
         return
-    frame = frame.reset_index(drop=True)
-    frame.index = frame.index + 1
-    st.caption(f"총 {len(frame)}개")
-    st.dataframe(frame[["name", "distance_m"]], height=height)
+    df = frame.copy()
+    df = df.reset_index(drop=True)
+    df.index = df.index + 1
+    if "distance_m" in df.columns:
+        df["distance_m"] = df["distance_m"].round(0).astype(int).astype(str) + "m"
+    st.caption(f"총 {len(df)}개")
+    st.dataframe(df[["name","distance_m"]], height=height)
 
-def render_map(user_lat: float, user_lon: float, frame: pd.DataFrame):
-    if frame is None or frame.empty:
-        st.info("지도에 표시할 식당이 없습니다.")
-        return
-    df_map = frame.rename(columns={"latitude":"lat","longitude":"lon"}).copy()
-    me_df = pd.DataFrame([{"lat": user_lat, "lon": user_lon}])
-    layers = [
-        pdk.Layer("ScatterplotLayer", data=df_map,
-                  get_position="[lon, lat]", get_radius=40,
-                  get_fill_color=[255, 0, 0, 160]),
-        pdk.Layer("ScatterplotLayer", data=me_df,
-                  get_position="[lon, lat]", get_radius=90,
-                  get_fill_color=[0, 100, 255, 220]),
+def render_map(lat, lon, frame: pd.DataFrame):
+    if frame.empty: return
+    df = frame.rename(columns={"latitude":"lat","longitude":"lon"})
+    me = pd.DataFrame([{"lat":lat,"lon":lon}])
+    layers=[
+        pdk.Layer("ScatterplotLayer", data=df, get_position="[lon, lat]", get_radius=40, get_fill_color=[255,0,0,160]),
+        pdk.Layer("ScatterplotLayer", data=me, get_position="[lon, lat]", get_radius=90, get_fill_color=[0,100,255,220]),
     ]
     st.pydeck_chart(pdk.Deck(
         map_provider="maplibre",
         map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
-        initial_view_state=pdk.ViewState(
-            latitude=user_lat, longitude=user_lon, zoom=15),
+        initial_view_state=pdk.ViewState(latitude=lat, longitude=lon, zoom=15),
         layers=layers
     ))
 
-# ---------------------------------
-# 메인 실행
-# ---------------------------------
+# ───────────────────────────────
+# 메인
+# ───────────────────────────────
 def main():
-    # 세션 상태
     if "page" not in st.session_state: st.session_state.page = 1
     page = st.session_state.page
 
-    # 위치 & 날씨
-    user_lat, user_lon = get_user_location()
+    # 위치 + 날씨
+    lat, lon = get_user_location()
     try:
-        w = fetch_weather(user_lat, user_lon)
-        group_name = weather_group_from_id(w["id"])
-        opts, mood = recommended_categories_from_group(group_name)
+        w = fetch_weather(lat, lon)
+        group = weather_group_from_id(w["id"])
+        opts, mood = recommended_categories_from_group(group)
     except:
-        group_name, opts, mood = "구름", ["가볍게 간단히", "든든한 한끼", "디저트/카페"]
+        w, group, opts, mood = {"description":"알수없음","temperature":"?"},"구름",["가볍게 간단히"],"실내 중심"
 
-    all_df = get_restaurant_within_500m_from_supabase(user_lat, user_lon)
+    # 사이드바
+    with st.sidebar:
+        st.markdown(f"### 📍 현재 위치\n위도: {lat:.4f}, 경도: {lon:.4f}")
+        st.markdown(f"### 🌤️ 현재 날씨\n{w['description']}, {w['temperature']}°C")
+        st.markdown(f"### 💡 추천 키워드\n{mood}")
+
+    all_df = get_restaurant_within_500m_from_supabase(lat, lon)
 
     st.title("날씨 + 위치 기반 음식점 추천 🌨️")
 
-    # -------------------
-    # PAGE 1
-    # -------------------
-    if page == 1:
+    # Page1
+    if page==1:
         st.subheader("현재 날씨 기반 추천 카테고리")
-        choice = st.radio("카테고리를 선택하세요 👇", options=opts, horizontal=False, key="choice")
+        choice = st.radio("카테고리를 선택하세요 👇", options=opts, key="choice")
         st.divider()
         st.subheader("반경 500m 후보 식당")
         render_scroll_table(all_df)
-        if st.button("➡ 다음"):
-            st.session_state.page = 2
+        if st.button("➡ 다음"): st.session_state.page=2
 
-    # -------------------
-    # PAGE 2
-    # -------------------
-    elif page == 2:
+    # Page2
+    elif page==2:
         choice = st.session_state.choice
         st.subheader(f"‘{choice}’ 카테고리에 해당하는 식당")
-        filtered_df = filter_by_category_tf(all_df, choice)
-        render_scroll_table(filtered_df)
+        filtered = all_df[all_df["category"].astype(str).str.contains(choice, na=False)]
+        render_scroll_table(filtered)
         st.subheader("지도 보기")
-        render_map(user_lat, user_lon, filtered_df)
-        col1, col2 = st.columns([0.5, 0.5])
-        with col1:
-            if st.button("⬅ 이전"): st.session_state.page = 1
-        with col2:
-            if st.button("다음 ➡"): st.session_state.page = 3
+        render_map(lat, lon, filtered)
+        col1,col2=st.columns([0.5,0.5])
+        if col1.button("⬅ 이전"): st.session_state.page=1
+        if col2.button("다음 ➡"): st.session_state.page=3
 
-    # -------------------
-    # PAGE 3
-    # -------------------
-    elif page == 3:
+    # Page3
+    elif page==3:
         choice = st.session_state.choice
         st.subheader(f"최종 선택: ‘{choice}’ 카테고리 결과 중 하나")
-        filtered_df = filter_by_category_tf(all_df, choice)
-        if not filtered_df.empty:
-            picked = st.selectbox("식당을 골라주세요", filtered_df["name"].tolist())
-            if st.button("맛집을 정했어요!"):
-                st.success(f"🎉 선택한 맛집: {picked}")
-            if st.button("조금 더 둘러볼래요!"):
-                st.info("다시 돌아갑니다.")
-                st.session_state.page = 1
+        filtered = all_df[all_df["category"].astype(str).str.contains(choice, na=False)]
+        if not filtered.empty:
+            picked = st.selectbox("식당을 고르세요", filtered["name"].tolist())
+            if st.button("맛집을 정했어요!"): st.success(f"🎉 선택한 맛집: {picked}")
+            if st.button("조금 더 둘러볼래요!"): st.session_state.page=1
         else:
             st.warning("조건에 맞는 식당이 없습니다.")
 
-if __name__ == "__main__":
+if __name__=="__main__":
     main()
+
