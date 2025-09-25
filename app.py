@@ -110,9 +110,23 @@ def render_paginated_table(frame: pd.DataFrame, *, table_key: str, page_size: in
     if frame is None or frame.empty:
         st.info("표시할 식당이 없습니다.")
         return pd.DataFrame()
-    total = len(frame)
+
+    # ✅ 필요한 컬럼만 선택 (name_g, distance_m)
+    if not {"name_g", "distance_m"}.issubset(frame.columns):
+        st.warning("필요한 컬럼(name_g, distance_m)이 없습니다.")
+        return pd.DataFrame()
+
+    df = frame[["name_g", "distance_m"]].copy()
+
+    # ✅ 거리 반올림 + 단위 추가
+    df["distance_m"] = pd.to_numeric(df["distance_m"], errors="coerce").round(0).astype("Int64").astype(str) + "m"
+    df.rename(columns={"name_g": "이름", "distance_m": "거리"}, inplace=True)
+
+    # 페이지네이션 계산
+    total = len(df)
     total_pages = max(1, math.ceil(total / page_size))
     page = int(st.session_state.get(table_key, 1))
+
     col1, col2 = st.columns([0.5,0.5])
     with col1:
         if st.button("◀ 이전", disabled=(page<=1), key=f"{table_key}_prev"):
@@ -121,9 +135,13 @@ def render_paginated_table(frame: pd.DataFrame, *, table_key: str, page_size: in
         if st.button("다음 ▶", disabled=(page>=total_pages), key=f"{table_key}_next"):
             page += 1
     st.session_state[table_key] = page
+
     start, end = (page-1)*page_size, (page-1)*page_size+page_size
-    page_df = frame.iloc[start:end].copy()
-    st.dataframe(page_df)  # ✅ 스크롤 테이블
+    page_df = df.iloc[start:end].copy()
+
+    # ✅ 세로 스크롤
+    st.dataframe(page_df, use_container_width=True, height=300)
+
     return page_df
 
 def render_map(user_lat, user_lon, frame: pd.DataFrame):
@@ -165,7 +183,7 @@ def main():
         w = {"description":"알수없음","temperature":"?"}
         group_name, opts, mood = "구름", ["가볍게 간단히","든든한 한끼","디저트/카페"], "실내 중심"
 
-    # 사이드바 (박스 스타일)
+    # 사이드바
     with st.sidebar:
         st.markdown(f"""
         <div style="background:#fff; border-radius:10px; padding:15px; margin-bottom:15px;">
@@ -190,10 +208,12 @@ def main():
 
     # Page 분기
     if st.session_state.page == "page1":
-        st.header("Step 1️⃣ 카테고리 선택 + 후보 식당 확인")
-        choice = st.radio("현재 날씨에 추천 드리는 카테고리입니다", options=opts)
-        st.subheader(f"‘{choice}’ 카테고리에 해당하는 후보 식당")
+        st.header("현재 날씨에 추천 드리는 카테고리입니다.")
+        choice = st.radio("카테고리를 선택하세요 👇", options=opts)
+        st.subheader(f"‘{choice}’ 카테고리에 해당되는 반경 500M 내 음식점")
+
         page_df = render_paginated_table(all_df, table_key="page1_table")
+
         if st.button("다음 ➡"):
             st.session_state.filtered = page_df
             st.session_state.page = "page2"
