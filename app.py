@@ -6,6 +6,7 @@ from supabase import create_client, Client
 import os
 from dotenv import load_dotenv
 import pydeck as pdk
+from haversine import haversine
 
 # ───────────────────────────────
 # 0. 환경 설정
@@ -91,7 +92,16 @@ def get_restaurant_within_500m_from_supabase(lat: float, lon: float):
         }).execute()
         if not response or response.data is None or len(response.data) == 0:
             return pd.DataFrame()
-        return pd.DataFrame(response.data)
+        df = pd.DataFrame(response.data)
+
+        # distance_m 없으면 직접 계산
+        if "latitude" in df.columns and "longitude" in df.columns and "distance_m" not in df.columns:
+            df["distance_m"] = df.apply(
+                lambda row: haversine((lat, lon), (row["latitude"], row["longitude"])) * 1000,
+                axis=1
+            ).round(0).astype(int)
+
+        return df
     except Exception as e:
         st.error(f"음식점 데이터를 불러오지 못했습니다: {e}")
         return pd.DataFrame()
@@ -197,7 +207,7 @@ def main():
         _, col_btn = st.columns([0.85, 0.15])
         with col_btn:
             if st.button("다음 ➡", use_container_width=True):
-                st.session_state.filtered = page_df
+                st.session_state.filtered = filtered_df
                 st.session_state.page = "page2"
                 st.rerun()
 
@@ -223,7 +233,12 @@ def main():
                     df_sorted.reset_index(drop=True, inplace=True)
                     df_sorted.index = df_sorted.index + 1
                     st.caption(f"총 {len(df_sorted)}개 결과")
-                    st.dataframe(df_sorted, use_container_width=True, height=500)
+
+                    selected_store = st.selectbox("➡ 확인할 식당 선택", options=df_sorted.index, format_func=lambda x: df_sorted.loc[x, "name_g"])
+                    if st.button("선택 완료 (Page3)"):
+                        st.session_state.selected_store = filtered.iloc[selected_store-1].to_dict()
+                        st.session_state.page = "page3"
+                        st.rerun()
                 else:
                     st.warning("거리 정보가 없습니다.")
 
@@ -246,14 +261,10 @@ def main():
             with tabs[3]:
                 render_map(user_lat, user_lon, filtered)
 
-        col_prev, col_next = st.columns([0.5, 0.5])
+        col_prev, _ = st.columns([0.5, 0.5])
         with col_prev:
             if st.button("⬅ 이전 (Page1)", use_container_width=True):
                 st.session_state.page = "page1"
-                st.rerun()
-        with col_next:
-            if st.button("➡ 다음 (Page3)", use_container_width=True):
-                st.session_state.page = "page3"
                 st.rerun()
 
     # ───── Page 3 ─────
@@ -262,7 +273,7 @@ def main():
 
         selected = st.session_state.get("selected_store")
         if selected is not None:
-            st.image(selected.get("map_link", ""), caption="음식점 링크 이미지", use_column_width=True)
+            st.image(selected.get("map_link", ""), caption=selected.get("name_g", "음식점"), use_column_width=True)
 
         col1, col2 = st.columns([0.5, 0.5])
         with col1:
