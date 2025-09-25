@@ -252,30 +252,42 @@ def main():
         """, unsafe_allow_html=True)
 
     # ------------------- 페이지 컨트롤 ---------------------
-    if st.session_state.page == "page1":
-        st.subheader("지금 날씨에 어울리는 음식 카테고리")
-        choice = st.radio("선택해 주세요 👇", options=opts, horizontal=True)
-        wx_df = filter_by_category_tf(all_df, choice)
-        if st.button("다음으로 ➡️"):
-            st.session_state.choice = choice
-            st.session_state.page = "page2"
+if st.session_state.page == "page1":
+    st.subheader("지금 날씨에 어울리는 음식 카테고리")
+    choice = st.radio("선택해 주세요 👇", options=opts, horizontal=True)
+    wx_df = filter_by_category_tf(all_df, choice)
+
+    st.write("해당 카테고리에 해당되는 반경 500M 내 음식점 입니다.")
+    if wx_df is not None and not wx_df.empty:
+        st.dataframe(wx_df[["name", "distance_m"]].rename(columns={"name":"이름", "distance_m":"거리"}))
+    else:
+        st.warning("해당 카테고리 음식점이 없습니다.")
+
+    # 항상 '다음' 버튼이 보여야 함
+    if st.button("다음"):
+        st.session_state.choice = choice
+        st.session_state.page = "page2"
+        st.rerun()
+
+elif st.session_state.page == "page2":
+    st.subheader("업태 선택")
+    choice = st.session_state.get("choice", None)
+    if choice is None:
+        st.warning("Page1에서 먼저 선택해 주세요.")
+        if st.button("이전"):
+            st.session_state.page = "page1"
             st.rerun()
-    elif st.session_state.page == "page2":
-        st.subheader("업태 선택")
-        choice = st.session_state.get("choice", None)
-        if choice is None:
-            st.warning("Page1에서 먼저 선택해 주세요.")
-            if st.button("⬅️ 이전으로"):
-                st.session_state.page = "page1"
-                st.rerun()
-            st.stop()
+        st.stop()
+    # 이어서 업태 선택 등 추가
+            
         wx_df = filter_by_category_tf(all_df, choice)
+
         final_filtered_df, _ = select_and_filter_by_business_type(wx_df) if not wx_df.empty else (pd.DataFrame(), [])
-        if st.button("다음으로 ➡️"):
+        if st.button("다음"):
             st.session_state.filtered = final_filtered_df
             st.session_state.page = "page3"
             st.rerun()
-        if st.button("⬅️ 이전으로"):
+        if st.button("이전"):
             st.session_state.page = "page1"
             st.rerun()
     elif st.session_state.page == "page3":
@@ -285,7 +297,7 @@ def main():
             st.warning("Page2에서 먼저 필터링해 주세요.")
         else:
             st.dataframe(final_filtered_df)
-        if st.button("⬅️ 이전으로"):
+        if st.button("이전"):
             st.session_state.page = "page2"
             st.rerun()
 
