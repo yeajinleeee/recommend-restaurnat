@@ -188,6 +188,7 @@ def main():
     if st.session_state.page == "page1":
         st.header("현재 날씨에 추천 드리는 카테고리입니다.")
         choice = st.radio("카테고리를 선택하세요 👇", options=opts)
+        st.markdown("---")
         st.subheader(f"‘{choice}’ 카테고리에 해당되는 반경 500M 내 음식점")
 
         filtered_df = all_df[all_df["category"] == choice] if "category" in all_df.columns else all_df
