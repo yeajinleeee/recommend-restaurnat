@@ -206,52 +206,52 @@ def main():
                 st.rerun()
 
     elif st.session_state.page == "page2":
-        elif st.session_state.page == "page2":
-    st.header("Step 2️⃣ 카테고리별 상세 식당 확인")
 
-    filtered = st.session_state.get("filtered", pd.DataFrame())
-
-    if filtered.empty:
-        st.warning("이전 단계에서 선택된 식당이 없습니다.")
-    else:
-        # 업태 선택
-        if "category" in filtered.columns:
-            selected_type = st.selectbox("업태를 선택하세요", options=filtered["category"].dropna().unique())
-            filtered = filtered[filtered["category"] == selected_type]
-
-        # 탭 (거리순, 별점순, 리뷰순, 지도맵)
-        tabs = st.tabs(["거리순", "별점순", "리뷰순", "지도맵"])
-
-        with tabs[0]:  # 거리순
-            if "distance_m" in filtered.columns:
-                df_sorted = filtered.sort_values("distance_m", ascending=True).copy()
-                df_sorted = df_sorted[["name_g", "distance_m"]]
-                df_sorted["distance_m"] = pd.to_numeric(df_sorted["distance_m"], errors="coerce").astype("Int64").astype(str) + "m"
-                df_sorted.reset_index(drop=True, inplace=True)
-                df_sorted.index = df_sorted.index + 1
-                st.caption(f"총 {len(df_sorted)}개 결과")
-                st.dataframe(df_sorted, use_container_width=True, height=500)
-            else:
-                st.warning("거리 정보가 없습니다.")
-
-        with tabs[1]:  # 별점순
-            if "rating" in filtered.columns:
-                df_sorted = filtered.sort_values("rating", ascending=False).copy()
-                st.caption(f"총 {len(df_sorted)}개 결과")
-                st.dataframe(df_sorted[["name_g","rating"]], use_container_width=True, height=500)
-            else:
-                st.warning("별점 정보가 없습니다.")
-
-        with tabs[2]:  # 리뷰순
-            if "review_count" in filtered.columns:
-                df_sorted = filtered.sort_values("review_count", ascending=False).copy()
-                st.caption(f"총 {len(df_sorted)}개 결과")
-                st.dataframe(df_sorted[["name_g","review_count"]], use_container_width=True, height=500)
-            else:
-                st.warning("리뷰 수 정보가 없습니다.")
-
-        with tabs[3]:  # 지도맵
-            render_map(user_lat, user_lon, filtered)
+        st.header("카테고리에 해당하는 식당입니다. 자세히 알아보고 싶은 식당을 골라주세")
+    
+        filtered = st.session_state.get("filtered", pd.DataFrame())
+    
+        if filtered.empty:
+            st.warning("이전 단계에서 선택된 식당이 없습니다.")
+        else:
+            # 업태 선택
+            if "category" in filtered.columns:
+                selected_type = st.selectbox("업태를 선택하세요(복수선택 가능)", options=filtered["category"].dropna().unique())
+                filtered = filtered[filtered["category"] == selected_type]
+    
+            # 탭 (거리순, 별점순, 리뷰순, 지도맵)
+            tabs = st.tabs(["거리순", "별점순", "리뷰순", "지도맵"])
+    
+            with tabs[0]:  # 거리순
+                if "distance_m" in filtered.columns:
+                    df_sorted = filtered.sort_values("distance_m", ascending=True).copy()
+                    df_sorted = df_sorted[["name_g", "distance_m"]]
+                    df_sorted["distance_m"] = pd.to_numeric(df_sorted["distance_m"], errors="coerce").astype("Int64").astype(str) + "m"
+                    df_sorted.reset_index(drop=True, inplace=True)
+                    df_sorted.index = df_sorted.index + 1
+                    st.caption(f"총 {len(df_sorted)}개 결과")
+                    st.dataframe(df_sorted, use_container_width=True, height=500)
+                else:
+                    st.warning("거리 정보가 없습니다.")
+    
+            with tabs[1]:  # 별점순
+                if "rating" in filtered.columns:
+                    df_sorted = filtered.sort_values("rating", ascending=False).copy()
+                    st.caption(f"총 {len(df_sorted)}개 결과")
+                    st.dataframe(df_sorted[["name_g","rating"]], use_container_width=True, height=500)
+                else:
+                    st.warning("별점 정보가 없습니다.")
+    
+            with tabs[2]:  # 리뷰순
+                if "review_count" in filtered.columns:
+                    df_sorted = filtered.sort_values("review_count", ascending=False).copy()
+                    st.caption(f"총 {len(df_sorted)}개 결과")
+                    st.dataframe(df_sorted[["name_g","review_count"]], use_container_width=True, height=500)
+                else:
+                    st.warning("리뷰 수 정보가 없습니다.")
+    
+            with tabs[3]:  # 지도맵
+                render_map(user_lat, user_lon, filtered)
 
     # 하단 버튼
     col_prev, col_next = st.columns([0.5, 0.5])
