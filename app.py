@@ -97,29 +97,27 @@ def get_restaurant_within_500m_from_supabase(lat: float, lon: float):
         return pd.DataFrame()
 
 # ───────────────────────────────
-# 4. UI Helper
+# 4. UI Helper (표 + 지도)
 # ───────────────────────────────
-def render_scroll_table(frame: pd.DataFrame, cols=None) -> pd.DataFrame:
+def render_scroll_table(frame: pd.DataFrame) -> pd.DataFrame:
     if frame is None or frame.empty:
         st.info("표시할 식당이 없습니다.")
         return pd.DataFrame()
 
-    df = frame.copy()
-    if cols:
-        df = df[cols]
+    if not {"name_g", "distance_m"}.issubset(frame.columns):
+        st.warning("필요한 컬럼(name_g, distance_m)이 없습니다.")
+        return pd.DataFrame()
 
-    # 거리 포맷
-    if "distance_m" in df.columns:
-        df["distance_m"] = pd.to_numeric(df["distance_m"], errors="coerce").round(0).astype("Int64").astype(str) + "m"
-        df.rename(columns={"distance_m": "거리"}, inplace=True)
-    if "name_g" in df.columns:
-        df.rename(columns={"name_g": "이름"}, inplace=True)
+    df = frame[["name_g", "distance_m"]].copy()
+    df["distance_m"] = pd.to_numeric(df["distance_m"], errors="coerce").round(0).astype("Int64").astype(str) + "m"
+    df.rename(columns={"name_g": "이름", "distance_m": "거리"}, inplace=True)
 
     df.reset_index(drop=True, inplace=True)
     df.index = df.index + 1
 
     st.caption(f"총 {len(df)}개 결과")
     st.dataframe(df, use_container_width=True, height=500)
+
     return df
 
 def render_map(user_lat, user_lon, frame: pd.DataFrame):
@@ -161,115 +159,119 @@ def main():
         w = {"description":"알수없음","temperature":"?"}
         group_name, opts, mood = "구름", ["가볍게 간단히","든든한 한끼","디저트/카페"], "실내 중심"
 
-    # 사이드바
+    # ───── 사이드바 (흰 카드 스타일) ─────
     with st.sidebar:
-        st.markdown(f"### 📍 현재 위치\n위도: {user_lat:.4f}, 경도: {user_lon:.4f}")
-        st.markdown(f"### 🌤️ 현재 날씨\n{w['description']}, {w['temperature']}°C")
-        st.markdown(f"### 💡 추천 키워드\n{mood}")
+        st.markdown(f"""
+        <div style="background:#ffffff; border-radius:10px; padding:15px; margin-bottom:15px; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+            <h3>📍 현재 위치</h3>
+            <p>위도: {user_lat:.4f}, 경도: {user_lon:.4f}</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown(f"""
+        <div style="background:#ffffff; border-radius:10px; padding:15px; margin-bottom:15px; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+            <h3>🌤️ 현재 날씨</h3>
+            <p>{w['description']}, {w['temperature']}°C</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown(f"""
+        <div style="background:#ffffff; border-radius:10px; padding:15px; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+            <h3>💡 추천 키워드</h3>
+            <p>{mood}</p>
+        </div>
+        """, unsafe_allow_html=True)
 
     all_df = get_restaurant_within_500m_from_supabase(user_lat, user_lon)
 
-    # ── Page1 ──
+    # ───── Page 1 ─────
     if st.session_state.page == "page1":
         st.header("현재 날씨에 추천 드리는 카테고리입니다.")
         choice = st.radio("카테고리를 선택하세요 👇", options=opts)
         st.subheader(f"‘{choice}’ 카테고리에 해당되는 반경 500M 내 음식점")
 
         filtered_df = all_df[all_df["category"] == choice] if "category" in all_df.columns else all_df
-        page_df = render_scroll_table(filtered_df, cols=["name_g", "distance_m"])
+        page_df = render_scroll_table(filtered_df)
 
         _, col_btn = st.columns([0.85, 0.15])
         with col_btn:
             if st.button("다음 ➡", use_container_width=True):
-                st.session_state.filtered = filtered_df
-                st.session_state.choice = choice
+                st.session_state.filtered = page_df
                 st.session_state.page = "page2"
                 st.rerun()
 
-    # ── Page2 ──
+    # ───── Page 2 ─────
     elif st.session_state.page == "page2":
-        st.header("카테고리에 해당하는 식당입니다. 자세히 알아보고 싶은 식당을 골라주세요.")
-        filtered = st.session_state.get("filtered", pd.DataFrame())
+        st.header("카테고리에 해당하는 식당입니다. 자세히 알아보고 싶은 식당을 골라주세요!")
 
+        filtered = st.session_state.get("filtered", pd.DataFrame())
         if filtered.empty:
             st.warning("이전 단계에서 선택된 식당이 없습니다.")
         else:
+            if "category" in filtered.columns:
+                selected_type = st.selectbox("업태를 선택하세요", options=filtered["category"].dropna().unique())
+                filtered = filtered[filtered["category"] == selected_type]
+
             tabs = st.tabs(["거리순", "별점순", "리뷰순", "지도맵"])
 
             with tabs[0]:
                 if "distance_m" in filtered.columns:
-                    df_sorted = filtered.sort_values("distance_m", ascending=True)
-                    st.session_state.picked = st.dataframe(df_sorted[["name_g","distance_m"]], use_container_width=True)
+                    df_sorted = filtered.sort_values("distance_m", ascending=True).copy()
+                    df_sorted = df_sorted[["name_g", "distance_m"]]
+                    df_sorted["distance_m"] = pd.to_numeric(df_sorted["distance_m"], errors="coerce").astype("Int64").astype(str) + "m"
+                    df_sorted.reset_index(drop=True, inplace=True)
+                    df_sorted.index = df_sorted.index + 1
+                    st.caption(f"총 {len(df_sorted)}개 결과")
+                    st.dataframe(df_sorted, use_container_width=True, height=500)
                 else:
                     st.warning("거리 정보가 없습니다.")
 
             with tabs[1]:
                 if "rating" in filtered.columns:
-                    df_sorted = filtered.sort_values("rating", ascending=False)
-                    st.dataframe(df_sorted[["name_g","rating"]], use_container_width=True)
+                    df_sorted = filtered.sort_values("rating", ascending=False).copy()
+                    st.caption(f"총 {len(df_sorted)}개 결과")
+                    st.dataframe(df_sorted[["name_g", "rating"]], use_container_width=True, height=500)
                 else:
                     st.warning("별점 정보가 없습니다.")
 
             with tabs[2]:
                 if "review_count" in filtered.columns:
-                    df_sorted = filtered.sort_values("review_count", ascending=False)
-                    st.dataframe(df_sorted[["name_g","review_count"]], use_container_width=True)
+                    df_sorted = filtered.sort_values("review_count", ascending=False).copy()
+                    st.caption(f"총 {len[df_sorted)}개 결과")
+                    st.dataframe(df_sorted[["name_g", "review_count"]], use_container_width=True, height=500)
                 else:
                     st.warning("리뷰 수 정보가 없습니다.")
 
             with tabs[3]:
                 render_map(user_lat, user_lon, filtered)
 
-            col_prev, col_next = st.columns([0.5, 0.5])
-            with col_prev:
-                if st.button("⬅ 이전 (Page1)", use_container_width=True):
-                    st.session_state.page = "page1"
-                    st.rerun()
-            with col_next:
-                if st.button("➡ 다음 (Page3)", use_container_width=True):
-                    # 예시로 첫 행을 선택한 것으로 처리
-                    if not filtered.empty:
-                        st.session_state.picked = filtered.iloc[[0]]
-                    st.session_state.page = "page3"
-                    st.rerun()
+        col_prev, col_next = st.columns([0.5, 0.5])
+        with col_prev:
+            if st.button("⬅ 이전 (Page1)", use_container_width=True):
+                st.session_state.page = "page1"
+                st.rerun()
+        with col_next:
+            if st.button("➡ 다음 (Page3)", use_container_width=True):
+                st.session_state.page = "page3"
+                st.rerun()
 
-    # ── Page3 ──
+    # ───── Page 3 ─────
     elif st.session_state.page == "page3":
         st.header("최종 선택")
 
-        picked_df = st.session_state.get("picked", pd.DataFrame())
-        if picked_df is None or picked_df.empty:
-            st.warning("선택된 식당이 없습니다. Page2에서 먼저 선택하세요.")
-        else:
-            name = picked_df.iloc[0].get("name_g", "이름 없음")
-            map_link = picked_df.iloc[0].get("map_link")
+        selected = st.session_state.get("selected_store")
+        if selected is not None:
+            st.image(selected.get("map_link", ""), caption="음식점 링크 이미지", use_column_width=True)
 
-            if pd.notna(map_link) and str(map_link).startswith(("http://", "https://")):
-                st.markdown(
-                    f"""
-                    <div style="text-align:center;">
-                        <a href="{map_link}" target="_blank">
-                            <img src="https://via.placeholder.com/400x250?text=식당+위치+보러가기" style="border-radius:10px;"/>
-                        </a>
-                        <p><b>{name}</b></p>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-            else:
-                st.image("https://via.placeholder.com/400x250?text=링크+없음", caption=f"선택한 식당: {name}", use_column_width=True)
-
-            col_prev, col_next = st.columns([0.5, 0.5])
-            with col_prev:
-                if st.button("조금 더 둘러볼래요!"):
-                    st.session_state.page = "page1"
-                    st.session_state.filtered = pd.DataFrame()
-                    st.session_state.choice = None
-                    st.session_state.picked = pd.DataFrame()
-                    st.rerun()
-            with col_next:
-                if st.button("맛집을 정했어요!"):
-                    st.success(f"🎉 최종 선택 완료: {name}")
+        col1, col2 = st.columns([0.5, 0.5])
+        with col1:
+            if st.button("⬅ 조금 더 둘러볼래요!"):
+                st.session_state.clear()
+                st.session_state.page = "page1"
+                st.rerun()
+        with col2:
+            if st.button("맛집을 정했어요!"):
+                st.success("맛집 선택이 완료되었습니다! 🎉")
 
 if __name__ == "__main__":
     main()
