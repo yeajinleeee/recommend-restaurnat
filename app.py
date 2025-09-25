@@ -237,7 +237,7 @@ def main():
             with tabs[2]:
                 if "review_count" in filtered.columns:
                     df_sorted = filtered.sort_values("review_count", ascending=False).copy()
-                    st.caption(f"총 {len[df_sorted)}개 결과")
+                    st.caption(f"총 {len(df_sorted)}개 결과")
                     st.dataframe(df_sorted[["name_g", "review_count"]], use_container_width=True, height=500)
                 else:
                     st.warning("리뷰 수 정보가 없습니다.")
