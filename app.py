@@ -6,7 +6,6 @@ from supabase import create_client, Client
 import os
 from dotenv import load_dotenv
 import re
-import math
 import pydeck as pdk
 
 # ───────────────────────────────
@@ -31,11 +30,6 @@ def get_user_location():
     if not loc or loc.get("latitude") is None or loc.get("longitude") is None:
         return seoul_lat, seoul_lon
     return float(loc["latitude"]), float(loc["longitude"])
-
-def _normalize_label(s: str) -> str:
-    if s is None: return ""
-    s = str(s).lower()
-    return re.sub(r"[\s/_\-\(\)]+", "", s)
 
 # ───────────────────────────────
 # 2. 날씨 그룹 & 추천 카테고리
@@ -106,7 +100,7 @@ def get_restaurant_within_500m_from_supabase(lat: float, lon: float):
 # ───────────────────────────────
 # 4. UI Helper (표 + 지도)
 # ───────────────────────────────
-def render_paginated_table(frame: pd.DataFrame, *, table_key: str, page_size: int = 10) -> pd.DataFrame:
+def render_scroll_table(frame: pd.DataFrame) -> pd.DataFrame:
     if frame is None or frame.empty:
         st.info("표시할 식당이 없습니다.")
         return pd.DataFrame()
@@ -116,33 +110,20 @@ def render_paginated_table(frame: pd.DataFrame, *, table_key: str, page_size: in
         return pd.DataFrame()
 
     df = frame[["name_g", "distance_m"]].copy()
-
-    # 거리 반올림 + 단위 추가
     df["distance_m"] = pd.to_numeric(df["distance_m"], errors="coerce").round(0).astype("Int64").astype(str) + "m"
     df.rename(columns={"name_g": "이름", "distance_m": "거리"}, inplace=True)
 
-    # 인덱스 재정렬 (1부터 시작)
+    # 인덱스 1부터 시작
     df.reset_index(drop=True, inplace=True)
     df.index = df.index + 1
 
-    total = len(df)
-    total_pages = max(1, math.ceil(total / page_size))
-    page = int(st.session_state.get(table_key, 1))
-
-    start, end = (page-1)*page_size, (page-1)*page_size+page_size
-    page_df = df.iloc[start:end].copy()
+    # 총 개수 표시 (작은 글씨)
+    st.caption(f"총 {len(df)}개 결과")
 
     # 세로 스크롤 테이블
-    st.dataframe(page_df, use_container_width=True, height=300)
+    st.dataframe(df, use_container_width=True, height=500)
 
-    # 다음 버튼 → 표 오른쪽 정렬
-    _, col_btn = st.columns([0.85, 0.15])
-    with col_btn:
-        if st.button("다음 ➡", key=f"{table_key}_nextbtn", use_container_width=True):
-            st.session_state[table_key] = min(page+1, total_pages)
-            st.rerun()
-
-    return page_df
+    return df
 
 def render_map(user_lat, user_lon, frame: pd.DataFrame):
     if frame.empty: 
@@ -211,12 +192,15 @@ def main():
         choice = st.radio("카테고리를 선택하세요 👇", options=opts)
         st.subheader(f"‘{choice}’ 카테고리에 해당되는 반경 500M 내 음식점")
 
-        page_df = render_paginated_table(all_df, table_key="page1_table")
+        page_df = render_scroll_table(all_df)
 
-        if st.button("➡ Step 2 지도 보기", use_container_width=True):
-            st.session_state.filtered = page_df
-            st.session_state.page = "page2"
-            st.rerun()
+        # 다음 버튼 → Page2로 이동
+        _, col_btn = st.columns([0.85, 0.15])
+        with col_btn:
+            if st.button("다음 ➡", use_container_width=True):
+                st.session_state.filtered = page_df
+                st.session_state.page = "page2"
+                st.rerun()
 
     elif st.session_state.page == "page2":
         st.header("Step 2️⃣ 지도에서 위치 확인")
