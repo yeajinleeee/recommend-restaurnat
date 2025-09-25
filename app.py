@@ -1,14 +1,11 @@
 import streamlit as st
 from streamlit_geolocation import streamlit_geolocation
 import pandas as pd
-from haversine import haversine
 import requests
 from supabase import create_client, Client
 import os
 from dotenv import load_dotenv
 import re
-import pydeck as pdk
-from typing import Tuple, List
 import math
 
 # ───────────────────────────────
@@ -23,7 +20,7 @@ OPENWEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
 st.set_page_config(page_title="날씨 + 위치 기반 음식점 추천", page_icon="🍜", layout="wide")
 
 # ───────────────────────────────
-# 1. 기본값 / 유틸
+# 1. 유틸
 # ───────────────────────────────
 seoul_lat, seoul_lon = 37.5665, 126.9780
 
@@ -33,44 +30,11 @@ def get_user_location():
         return seoul_lat, seoul_lon
     return float(loc["latitude"]), float(loc["longitude"])
 
-CATEGORY_ALIAS = {
-    "시원한 한끼": "시원한 음식",
-    "술 한잔 하기 좋은 날": "술 한잔 하기 좋은날",
-    "가족/단체회식": "가족/단체 외식",
-    "패스트푸드/배달": "패스트푸드",
-    "헤산물/생선요리": "해산물/생선요리",
-}
-def norm_cat(name: str) -> str:
-    return CATEGORY_ALIAS.get(name, name)
-
 def _normalize_label(s: str) -> str:
     if s is None: return ""
     s = str(s).lower()
-    return re.sub(r"[\s/_\\-()]+", "", s)
-
-def coerce_tf_bool(frame: pd.DataFrame) -> pd.DataFrame:
-    for col in frame.columns:
-        if frame[col].dtype is bool:
-            continue
-        if frame[col].dtype == object:
-            vals = frame[col].astype(str).str.strip().str.upper()
-            if vals.isin(["TRUE","FALSE","1","0","","NAN"]).mean() > 0.8:
-                frame[col] = vals.map({"TRUE": True, "FALSE": False, "1": True, "0": False}).fillna(False)
-    return frame
-
-def resolve_tf_column(frame: pd.DataFrame, expected_label: str) -> str | None:
-    expected = norm_cat(expected_label)
-    if expected in frame.columns:
-        return expected
-    want = _normalize_label(expected)
-    normalized = {str(c): _normalize_label(str(c)) for c in frame.columns}
-    for col, key in normalized.items():
-        if key == want:
-            return col
-    for col, key in normalized.items():
-        if want in key:
-            return col
-    return None
+    # ✅ 정규식 수정 (Python 3.13 호환)
+    return re.sub(r"[\s/_\-\(\)]+", "", s)
 
 # ───────────────────────────────
 # 2. 날씨 그룹 & 추천 카테고리
@@ -91,13 +55,13 @@ WX_RECO = {
              "cats": ["든든한 한끼","뜨끈한 국물","디저트/카페","시원한 한끼","해산물/생선요리"]},
     "비": {"mood": "외출 불편, 따뜻하거나 자극적인 음식",
            "cats": ["뜨끈한 국물","매콤한 음식","술 한잔 하기 좋은 날","패스트푸드/배달","시원한 한끼"]},
-    "이슬비": {"mood": "활동 가능하지만 귀찮음, 정적이거나 가벼운 공간",
+    "이슬비": {"mood": "활동 가능하지만 귀찮음",
                "cats": ["디저트/카페","가볍게 간단히","건강/채식/특수식단","해산물/생선요리"]},
     "뇌우": {"mood": "외출 최소화, 실내 고정",
              "cats": ["육류구이/고기파티","든든한 한끼","패스트푸드/배달"]},
-    "눈": {"mood": "실내, 정적인 장소, 감성적, 따뜻함 추구",
+    "눈": {"mood": "실내, 감성적, 따뜻함 추구",
            "cats": ["뜨끈한 국물","육류구이/고기파티","가족/단체회식","디저트/카페","해산물/생선요리"]},
-    "분위기": {"mood": "안개/먼지 등 건강 고려, 따뜻한 국물, 배달 선호",
+    "분위기": {"mood": "안개/먼지 등 건강 고려",
               "cats": ["건강/채식/특수식단","뜨끈한 국물","패스트푸드/배달"]},
 }
 
@@ -108,7 +72,7 @@ def weather_group_from_id(weather_id: int) -> str:
     return "구름"
 
 def recommended_categories_from_group(group_name: str, top_k: int | None = None):
-    cats = [norm_cat(c) for c in WX_RECO[group_name]["cats"]]
+    cats = WX_RECO[group_name]["cats"]
     mood = WX_RECO[group_name]["mood"]
     return (cats, mood) if top_k is None else (cats[:top_k], mood)
 
@@ -116,8 +80,6 @@ def recommended_categories_from_group(group_name: str, top_k: int | None = None)
 # 3. API
 # ───────────────────────────────
 def fetch_weather(weather_lat: float, weather_lon: float) -> dict:
-    if not OPENWEATHER_API_KEY:
-        raise RuntimeError("OpenWeather API 키가 설정되지 않았습니다.")
     url = f"https://api.openweathermap.org/data/2.5/weather?lat={weather_lat}&lon={weather_lon}&appid={OPENWEATHER_API_KEY}&units=metric&lang=kr"
     res = requests.get(url, timeout=10)
     res.raise_for_status()
@@ -141,79 +103,13 @@ def get_restaurant_within_500m_from_supabase(lat: float, lon: float):
         return pd.DataFrame()
 
 # ───────────────────────────────
-# 4. 필터 함수
+# 4. UI Helper (표)
 # ───────────────────────────────
-def filter_by_weather_via_categories(frame: pd.DataFrame, group_name: str, use_all_cats=True, top_k=3) -> pd.DataFrame:
-    if frame is None or frame.empty:
-        return pd.DataFrame()
-    frame = coerce_tf_bool(frame)
-    cats_all = [norm_cat(c) for c in WX_RECO[group_name]["cats"]]
-    cats = cats_all if use_all_cats else cats_all[:top_k]
-    cols = [resolve_tf_column(frame, c) for c in cats]
-    cols = [c for c in cols if c]
-    if not cols:
-        return pd.DataFrame()
-    mask = False
-    for col in cols:
-        mask = mask | (frame[col] == True)
-    return frame[mask].copy()
-
-def filter_by_category_tf(frame: pd.DataFrame, theme: str) -> pd.DataFrame:
-    if frame is None or frame.empty:
-        return pd.DataFrame()
-    frame = coerce_tf_bool(frame)
-    col_name = resolve_tf_column(frame, theme)
-    if not col_name:
-        return pd.DataFrame()
-    out = frame[frame[col_name] == True].copy()
-    for order_col in ["distance_m", "distance", "dist_m", "distance_km"]:
-        if order_col in out.columns:
-            if order_col == "distance_km":
-                out = out.sort_values(order_col)
-                out["distance_m"] = (pd.to_numeric(out[order_col], errors="coerce")*1000).round(0).astype("Int64")
-            else:
-                out[order_col] = pd.to_numeric(out[order_col], errors="coerce")
-                out = out.sort_values(order_col)
-            break
-    return out
-
-# ───────────────────────────────
-# 5. UI Helper (표)
-# ───────────────────────────────
-def detect_df_col(frame: pd.DataFrame, candidates, fuzzy=()):
-    for cand in candidates:
-        if cand in frame.columns:
-            return cand
-    low_cols = {col.lower(): col for col in frame.columns}
-    for substr in fuzzy:
-        s = str(substr).lower()
-        for low_name, original in low_cols.items():
-            if s in low_name:
-                return original
-    return None
-
-def format_distance(value, colname: str | None) -> str:
-    if value is None or (hasattr(pd, "isna") and pd.isna(value)):
-        return ""
-    try:
-        d = float(value)
-    except Exception:
-        return str(value)
-    if colname and "km" in str(colname).lower():
-        return f"{d:.2f}km"
-    return f"{int(round(d))}m"
-
-def render_paginated_clickable_name_table(frame: pd.DataFrame, *, table_key: str, page_size: int = 10) -> pd.DataFrame:
+def render_paginated_table(frame: pd.DataFrame, *, table_key: str, page_size: int = 10) -> pd.DataFrame:
     if frame is None or frame.empty:
         st.info("표시할 식당이 없습니다.")
         return pd.DataFrame()
-    view_df = frame.copy()
-    for order_col in ("distance_m", "distance", "dist_m", "distance_km"):
-        if order_col in view_df.columns:
-            view_df[order_col] = pd.to_numeric(view_df[order_col], errors="coerce")
-            view_df = view_df.sort_values(order_col)
-            break
-    total = len(view_df)
+    total = len(frame)
     total_pages = max(1, math.ceil(total / page_size))
     page = int(st.session_state.get(table_key, 1))
     col1, col2 = st.columns([0.5,0.5])
@@ -225,54 +121,78 @@ def render_paginated_clickable_name_table(frame: pd.DataFrame, *, table_key: str
             page += 1
     st.session_state[table_key] = page
     start, end = (page-1)*page_size, (page-1)*page_size+page_size
-    page_df = view_df.iloc[start:end].copy()
-    name_col = detect_df_col(page_df, ["name","place_name","상호명","store_name"], fuzzy=("name","상호","place"))
-    dist_col = detect_df_col(page_df, ["distance_m","distance","dist_m","distance_km"], fuzzy=("dist","거리"))
-    show_cols = []
-    if name_col: show_cols.append(name_col)
-    if dist_col: show_cols.append(dist_col)
-    if show_cols:
-        st.dataframe(page_df[show_cols])
-    else:
-        st.dataframe(page_df)
+    page_df = frame.iloc[start:end].copy()
+    st.dataframe(page_df)  # ✅ 스크롤 형태
     return page_df
 
 # ───────────────────────────────
-# 6. Main
+# 5. Main (Page1 → Page2 → Page3)
 # ───────────────────────────────
 def main():
+    if "page" not in st.session_state:
+        st.session_state.page = "page1"
+
     user_lat, user_lon = get_user_location()
     try:
         w = fetch_weather(user_lat, user_lon)
         group_name = weather_group_from_id(w["id"])
         opts, mood = recommended_categories_from_group(group_name)
-    except Exception as e:
-        st.error(f"날씨 정보를 불러오는 데 실패했습니다: {e}")
+    except:
         w = {"description":"알수없음","temperature":"?"}
         group_name, opts, mood = "구름", ["가볍게 간단히","든든한 한끼","디저트/카페"], "실내 중심"
-    
-    # ── 사이드바
-    with st.sidebar:
-        st.markdown("### 📍 현재 위치")
-        st.write(f"위도: {user_lat:.4f}, 경도: {user_lon:.4f}")
-        st.markdown("### 🌤️ 현재 날씨")
-        st.write(f"{w['description']}, {w['temperature']}°C")
-        st.markdown("### 💡 추천 키워드")
-        for tag in mood.split(","):
-            st.write(f"#{tag.strip()}")
 
-    # ── 본문
-    st.header("날씨 + 위치 기반 음식점 추천 🌨️")
-    choice = st.radio("현재 날씨에 추천 드리는 카테고리입니다. 선택해 주세요!", options=opts)
+    # 사이드바 (박스 스타일)
+    with st.sidebar:
+        st.markdown(f"""
+        <div style="background:#fff; border-radius:10px; padding:15px; margin-bottom:15px;">
+            <h3>📍 현재 위치</h3>
+            <p>위도: {user_lat:.4f}, 경도: {user_lon:.4f}</p>
+        </div>
+        """, unsafe_allow_html=True)
+        st.markdown(f"""
+        <div style="background:#fff; border-radius:10px; padding:15px; margin-bottom:15px;">
+            <h3>🌤️ 현재 날씨</h3>
+            <p>{w['description']}, {w['temperature']}°C</p>
+        </div>
+        """, unsafe_allow_html=True)
+        st.markdown(f"""
+        <div style="background:#fff; border-radius:10px; padding:15px;">
+            <h3>💡 추천 키워드</h3>
+            <p>{mood}</p>
+        </div>
+        """, unsafe_allow_html=True)
 
     all_df = get_restaurant_within_500m_from_supabase(user_lat, user_lon)
-    st.caption(f"반경 500m 이내 음식점 목록 (총 {len(all_df)}개)")
-    render_paginated_clickable_name_table(all_df, table_key="all_df")
 
-    wx_df = filter_by_weather_via_categories(all_df, group_name)
-    filtered_df = filter_by_category_tf(wx_df, choice)
-    st.subheader(f"‘{group_name}’ 날씨 + ‘{choice}’ 카테고리 결과")
-    render_paginated_clickable_name_table(filtered_df, table_key=f"filtered_{group_name}_{choice}")
+    # Page 분기
+    if st.session_state.page == "page1":
+        st.header("Step 1️⃣ 카테고리 선택")
+        choice = st.radio("현재 날씨에 추천 드리는 카테고리입니다", options=opts)
+        if st.button("다음 ➡"):
+            st.session_state.choice = choice
+            st.session_state.page = "page2"
+            st.rerun()
+
+    elif st.session_state.page == "page2":
+        st.header("Step 2️⃣ 후보 식당 확인")
+        wx_df = all_df  # 여기서는 단순히 전체에서 보여줌
+        filtered_df = wx_df  # 추후 filter_by_category_tf 적용 가능
+        st.write(f"총 {len(filtered_df)}곳")
+        page_df = render_paginated_table(filtered_df, table_key="page2_table")
+        if st.button("⬅ 이전"):
+            st.session_state.page = "page1"
+            st.rerun()
+        if st.button("다음 ➡"):
+            st.session_state.page = "page3"
+            st.rerun()
+
+    elif st.session_state.page == "page3":
+        st.header("Step 3️⃣ 최종 선택")
+        st.write("여기서 하나를 최종적으로 고르는 로직 추가")
+        if st.button("⬅ 이전"):
+            st.session_state.page = "page2"
+            st.rerun()
 
 if __name__ == "__main__":
     main()
+
