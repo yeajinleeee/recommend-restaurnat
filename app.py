@@ -7,6 +7,7 @@ import os
 from dotenv import load_dotenv
 import re
 import math
+import pydeck as pdk
 
 # ───────────────────────────────
 # 0. 환경 설정
@@ -18,6 +19,7 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 OPENWEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
 
 st.set_page_config(page_title="날씨 + 위치 기반 음식점 추천", page_icon="🍜", layout="wide")
+st.title("날씨 + 위치 기반 음식점 추천 🌨️")
 
 # ───────────────────────────────
 # 1. 유틸
@@ -33,7 +35,6 @@ def get_user_location():
 def _normalize_label(s: str) -> str:
     if s is None: return ""
     s = str(s).lower()
-    # ✅ 정규식 수정 (Python 3.13 호환)
     return re.sub(r"[\s/_\-\(\)]+", "", s)
 
 # ───────────────────────────────
@@ -103,7 +104,7 @@ def get_restaurant_within_500m_from_supabase(lat: float, lon: float):
         return pd.DataFrame()
 
 # ───────────────────────────────
-# 4. UI Helper (표)
+# 4. UI Helper (표 + 지도)
 # ───────────────────────────────
 def render_paginated_table(frame: pd.DataFrame, *, table_key: str, page_size: int = 10) -> pd.DataFrame:
     if frame is None or frame.empty:
@@ -122,8 +123,31 @@ def render_paginated_table(frame: pd.DataFrame, *, table_key: str, page_size: in
     st.session_state[table_key] = page
     start, end = (page-1)*page_size, (page-1)*page_size+page_size
     page_df = frame.iloc[start:end].copy()
-    st.dataframe(page_df)  # ✅ 스크롤 형태
+    st.dataframe(page_df)  # ✅ 스크롤 테이블
     return page_df
+
+def render_map(user_lat, user_lon, frame: pd.DataFrame):
+    if frame.empty: 
+        st.warning("표시할 식당이 없습니다.")
+        return
+    if "latitude" not in frame.columns or "longitude" not in frame.columns:
+        st.warning("'latitude', 'longitude' 컬럼이 필요합니다.")
+        return
+    df_map = frame.rename(columns={"latitude":"lat","longitude":"lon"}).copy()
+    layers = [
+        pdk.Layer("ScatterplotLayer", data=df_map,
+                  get_position="[lon, lat]",
+                  get_radius=60, get_fill_color=[255,0,0,160], pickable=True),
+        pdk.Layer("ScatterplotLayer", data=pd.DataFrame([{"lat":user_lat,"lon":user_lon}]),
+                  get_position="[lon, lat]",
+                  get_radius=100, get_fill_color=[0,100,255,200])
+    ]
+    st.pydeck_chart(pdk.Deck(
+        map_provider="maplibre",
+        map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
+        initial_view_state=pdk.ViewState(latitude=user_lat, longitude=user_lon, zoom=15),
+        layers=layers
+    ))
 
 # ───────────────────────────────
 # 5. Main (Page1 → Page2 → Page3)
@@ -166,19 +190,19 @@ def main():
 
     # Page 분기
     if st.session_state.page == "page1":
-        st.header("Step 1️⃣ 카테고리 선택")
+        st.header("Step 1️⃣ 카테고리 선택 + 후보 식당 확인")
         choice = st.radio("현재 날씨에 추천 드리는 카테고리입니다", options=opts)
+        st.subheader(f"‘{choice}’ 카테고리에 해당하는 후보 식당")
+        page_df = render_paginated_table(all_df, table_key="page1_table")
         if st.button("다음 ➡"):
-            st.session_state.choice = choice
+            st.session_state.filtered = page_df
             st.session_state.page = "page2"
             st.rerun()
 
     elif st.session_state.page == "page2":
-        st.header("Step 2️⃣ 후보 식당 확인")
-        wx_df = all_df  # 여기서는 단순히 전체에서 보여줌
-        filtered_df = wx_df  # 추후 filter_by_category_tf 적용 가능
-        st.write(f"총 {len(filtered_df)}곳")
-        page_df = render_paginated_table(filtered_df, table_key="page2_table")
+        st.header("Step 2️⃣ 지도에서 위치 확인")
+        filtered = st.session_state.get("filtered", pd.DataFrame())
+        render_map(user_lat, user_lon, filtered)
         if st.button("⬅ 이전"):
             st.session_state.page = "page1"
             st.rerun()
