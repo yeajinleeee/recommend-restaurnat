@@ -5,7 +5,6 @@ import requests
 from supabase import create_client, Client
 import os
 from dotenv import load_dotenv
-import re
 import pydeck as pdk
 
 # ───────────────────────────────
@@ -100,46 +99,45 @@ def get_restaurant_within_500m_from_supabase(lat: float, lon: float):
 # ───────────────────────────────
 # 4. UI Helper (표 + 지도)
 # ───────────────────────────────
-def render_scroll_table(frame: pd.DataFrame) -> pd.DataFrame:
+def render_scroll_table(frame: pd.DataFrame, cols=None) -> pd.DataFrame:
     if frame is None or frame.empty:
         st.info("표시할 식당이 없습니다.")
         return pd.DataFrame()
 
-    if not {"name_g", "distance_m"}.issubset(frame.columns):
-        st.warning("필요한 컬럼(name_g, distance_m)이 없습니다.")
-        return pd.DataFrame()
+    df = frame.copy()
+    if cols:
+        df = df[cols]
 
-    df = frame[["name_g", "distance_m"]].copy()
-    df["distance_m"] = pd.to_numeric(df["distance_m"], errors="coerce").round(0).astype("Int64").astype(str) + "m"
-    df.rename(columns={"name_g": "이름", "distance_m": "거리"}, inplace=True)
+    # 거리(m) 포맷팅
+    if "distance_m" in df.columns:
+        df["distance_m"] = pd.to_numeric(df["distance_m"], errors="coerce").round(0).astype("Int64").astype(str) + "m"
+        df.rename(columns={"distance_m": "거리"}, inplace=True)
+    if "name_g" in df.columns:
+        df.rename(columns={"name_g": "이름"}, inplace=True)
 
-    # 인덱스 1부터 시작
     df.reset_index(drop=True, inplace=True)
     df.index = df.index + 1
 
-    # 총 개수 표시 (작은 글씨)
     st.caption(f"총 {len(df)}개 결과")
-
-    # 세로 스크롤 테이블
     st.dataframe(df, use_container_width=True, height=500)
 
     return df
 
 def render_map(user_lat, user_lon, frame: pd.DataFrame):
-    if frame.empty: 
+    if frame.empty:
         st.warning("표시할 식당이 없습니다.")
         return
     if "latitude" not in frame.columns or "longitude" not in frame.columns:
         st.warning("'latitude', 'longitude' 컬럼이 필요합니다.")
         return
-    df_map = frame.rename(columns={"latitude":"lat","longitude":"lon"}).copy()
+    df_map = frame.rename(columns={"latitude": "lat", "longitude": "lon"}).copy()
     layers = [
         pdk.Layer("ScatterplotLayer", data=df_map,
                   get_position="[lon, lat]",
-                  get_radius=60, get_fill_color=[255,0,0,160], pickable=True),
-        pdk.Layer("ScatterplotLayer", data=pd.DataFrame([{"lat":user_lat,"lon":user_lon}]),
+                  get_radius=60, get_fill_color=[255, 0, 0, 160], pickable=True),
+        pdk.Layer("ScatterplotLayer", data=pd.DataFrame([{"lat": user_lat, "lon": user_lon}]),
                   get_position="[lon, lat]",
-                  get_radius=100, get_fill_color=[0,100,255,200])
+                  get_radius=100, get_fill_color=[0, 100, 255, 200])
     ]
     st.pydeck_chart(pdk.Deck(
         map_provider="maplibre",
@@ -161,8 +159,8 @@ def main():
         group_name = weather_group_from_id(w["id"])
         opts, mood = recommended_categories_from_group(group_name)
     except:
-        w = {"description":"알수없음","temperature":"?"}
-        group_name, opts, mood = "구름", ["가볍게 간단히","든든한 한끼","디저트/카페"], "실내 중심"
+        w = {"description": "알수없음", "temperature": "?"}
+        group_name, opts, mood = "구름", ["가볍게 간단히", "든든한 한끼", "디저트/카페"], "실내 중심"
 
     # 사이드바
     with st.sidebar:
@@ -187,83 +185,74 @@ def main():
 
     all_df = get_restaurant_within_500m_from_supabase(user_lat, user_lon)
 
+    # ── Page1 ──
     if st.session_state.page == "page1":
         st.header("현재 날씨에 추천 드리는 카테고리입니다.")
         choice = st.radio("카테고리를 선택하세요 👇", options=opts)
         st.subheader(f"‘{choice}’ 카테고리에 해당되는 반경 500M 내 음식점")
 
-        # ✅ 선택한 카테고리로 필터링
         filtered_df = all_df[all_df["category"] == choice] if "category" in all_df.columns else all_df
-
         page_df = render_scroll_table(filtered_df)
 
-        # 다음 버튼 → Page2로 이동
         _, col_btn = st.columns([0.85, 0.15])
         with col_btn:
             if st.button("다음 ➡", use_container_width=True):
-                st.session_state.filtered = page_df
+                st.session_state.filtered = filtered_df
                 st.session_state.page = "page2"
                 st.rerun()
 
+    # ── Page2 ──
     elif st.session_state.page == "page2":
+        st.header("카테고리에 해당하는 식당입니다. 자세히 알아보고 싶은 식당을 선택해주세요.")
 
-        st.header("카테고리에 해당하는 식당입니다. 자세히 알아보고 싶은 식당을 골라주세")
-    
         filtered = st.session_state.get("filtered", pd.DataFrame())
-    
         if filtered.empty:
             st.warning("이전 단계에서 선택된 식당이 없습니다.")
         else:
             # 업태 선택
             if "category" in filtered.columns:
-                selected_type = st.selectbox("업태를 선택하세요(복수선택 가능)", options=filtered["category"].dropna().unique())
+                selected_type = st.selectbox("업태를 선택하세요", options=filtered["category"].dropna().unique())
                 filtered = filtered[filtered["category"] == selected_type]
-    
+
             # 탭 (거리순, 별점순, 리뷰순, 지도맵)
             tabs = st.tabs(["거리순", "별점순", "리뷰순", "지도맵"])
-    
-            with tabs[0]:  # 거리순
+
+            with tabs[0]:
                 if "distance_m" in filtered.columns:
                     df_sorted = filtered.sort_values("distance_m", ascending=True).copy()
-                    df_sorted = df_sorted[["name_g", "distance_m"]]
-                    df_sorted["distance_m"] = pd.to_numeric(df_sorted["distance_m"], errors="coerce").astype("Int64").astype(str) + "m"
-                    df_sorted.reset_index(drop=True, inplace=True)
-                    df_sorted.index = df_sorted.index + 1
-                    st.caption(f"총 {len(df_sorted)}개 결과")
-                    st.dataframe(df_sorted, use_container_width=True, height=500)
+                    render_scroll_table(df_sorted, cols=["name_g", "distance_m"])
                 else:
                     st.warning("거리 정보가 없습니다.")
-    
-            with tabs[1]:  # 별점순
+
+            with tabs[1]:
                 if "rating" in filtered.columns:
                     df_sorted = filtered.sort_values("rating", ascending=False).copy()
-                    st.caption(f"총 {len(df_sorted)}개 결과")
-                    st.dataframe(df_sorted[["name_g","rating"]], use_container_width=True, height=500)
+                    render_scroll_table(df_sorted, cols=["name_g", "rating"])
                 else:
                     st.warning("별점 정보가 없습니다.")
-    
-            with tabs[2]:  # 리뷰순
+
+            with tabs[2]:
                 if "review_count" in filtered.columns:
                     df_sorted = filtered.sort_values("review_count", ascending=False).copy()
-                    st.caption(f"총 {len(df_sorted)}개 결과")
-                    st.dataframe(df_sorted[["name_g","review_count"]], use_container_width=True, height=500)
+                    render_scroll_table(df_sorted, cols=["name_g", "review_count"])
                 else:
                     st.warning("리뷰 수 정보가 없습니다.")
-    
-            with tabs[3]:  # 지도맵
+
+            with tabs[3]:
                 render_map(user_lat, user_lon, filtered)
 
-    # 하단 버튼
-    col_prev, col_next = st.columns([0.5, 0.5])
-    with col_prev:
-        if st.button("⬅ 이전 (Page1)", use_container_width=True):
-            st.session_state.page = "page1"
-            st.rerun()
-    with col_next:
-        if st.button("➡ 다음 (Page3)", use_container_width=True):
-            st.session_state.page = "page3"
-            st.rerun()
-            
+        # 하단 버튼
+        col_prev, col_next = st.columns([0.5, 0.5])
+        with col_prev:
+            if st.button("⬅ 이전 (Page1)", use_container_width=True):
+                st.session_state.page = "page1"
+                st.rerun()
+        with col_next:
+            if st.button("➡ 다음 (Page3)", use_container_width=True):
+                st.session_state.page = "page3"
+                st.rerun()
+
+    # ── Page3 ──
     elif st.session_state.page == "page3":
         st.header("Step 3️⃣ 최종 선택")
         st.write("여기서 하나를 최종적으로 고르는 로직 추가")
@@ -271,6 +260,7 @@ def main():
             st.session_state.page = "page2"
             st.rerun()
 
+# 실행
 if __name__ == "__main__":
     main()
 
