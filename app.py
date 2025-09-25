@@ -111,36 +111,36 @@ def render_paginated_table(frame: pd.DataFrame, *, table_key: str, page_size: in
         st.info("표시할 식당이 없습니다.")
         return pd.DataFrame()
 
-    # ✅ 필요한 컬럼만 선택 (name_g, distance_m)
     if not {"name_g", "distance_m"}.issubset(frame.columns):
         st.warning("필요한 컬럼(name_g, distance_m)이 없습니다.")
         return pd.DataFrame()
 
     df = frame[["name_g", "distance_m"]].copy()
 
-    # ✅ 거리 반올림 + 단위 추가
+    # 거리 반올림 + 단위 추가
     df["distance_m"] = pd.to_numeric(df["distance_m"], errors="coerce").round(0).astype("Int64").astype(str) + "m"
     df.rename(columns={"name_g": "이름", "distance_m": "거리"}, inplace=True)
 
-    # 페이지네이션 계산
+    # 인덱스 재정렬 (1부터 시작)
+    df.reset_index(drop=True, inplace=True)
+    df.index = df.index + 1
+
     total = len(df)
     total_pages = max(1, math.ceil(total / page_size))
     page = int(st.session_state.get(table_key, 1))
 
-    col1, col2 = st.columns([0.5,0.5])
-    with col1:
-        if st.button("◀ 이전", disabled=(page<=1), key=f"{table_key}_prev"):
-            page -= 1
-    with col2:
-        if st.button("다음 ▶", disabled=(page>=total_pages), key=f"{table_key}_next"):
-            page += 1
-    st.session_state[table_key] = page
-
     start, end = (page-1)*page_size, (page-1)*page_size+page_size
     page_df = df.iloc[start:end].copy()
 
-    # ✅ 세로 스크롤
+    # 세로 스크롤 테이블
     st.dataframe(page_df, use_container_width=True, height=300)
+
+    # 다음 버튼 → 표 오른쪽 정렬
+    _, col_btn = st.columns([0.85, 0.15])
+    with col_btn:
+        if st.button("다음 ➡", key=f"{table_key}_nextbtn", use_container_width=True):
+            st.session_state[table_key] = min(page+1, total_pages)
+            st.rerun()
 
     return page_df
 
@@ -168,7 +168,7 @@ def render_map(user_lat, user_lon, frame: pd.DataFrame):
     ))
 
 # ───────────────────────────────
-# 5. Main (Page1 → Page2 → Page3)
+# 5. Main
 # ───────────────────────────────
 def main():
     if "page" not in st.session_state:
@@ -206,7 +206,6 @@ def main():
 
     all_df = get_restaurant_within_500m_from_supabase(user_lat, user_lon)
 
-    # Page 분기
     if st.session_state.page == "page1":
         st.header("현재 날씨에 추천 드리는 카테고리입니다.")
         choice = st.radio("카테고리를 선택하세요 👇", options=opts)
@@ -214,7 +213,7 @@ def main():
 
         page_df = render_paginated_table(all_df, table_key="page1_table")
 
-        if st.button("다음 ➡"):
+        if st.button("➡ Step 2 지도 보기", use_container_width=True):
             st.session_state.filtered = page_df
             st.session_state.page = "page2"
             st.rerun()
@@ -226,7 +225,7 @@ def main():
         if st.button("⬅ 이전"):
             st.session_state.page = "page1"
             st.rerun()
-        if st.button("다음 ➡"):
+        if st.button("➡ Step 3 최종 선택"):
             st.session_state.page = "page3"
             st.rerun()
 
