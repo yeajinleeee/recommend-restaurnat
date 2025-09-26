@@ -238,9 +238,15 @@ def main():
         if not choice:
             st.warning("이전 단계에서 카테고리를 선택하지 않았습니다.")
         else:
-            filtered_df = all_df[all_df["category"].map(norm_cat) == norm_cat(choice)] if "category" in all_df.columns else all_df
+            # ✅ 1차 필터링: Page1에서 선택한 불리안 컬럼 기준
+            if norm_cat(choice) in all_df.columns:
+                filtered_df = all_df[all_df[norm_cat(choice)] == True]
+            else:
+                filtered_df = all_df
+
             st.write(f"선택된 카테고리: {choice} (총 {len(filtered_df)}개)")
 
+            # ✅ 2차 필터링: 업태 멀티선택
             filtered, selected_types = select_and_filter_by_business_type(filtered_df)
 
             tabs = st.tabs(["거리순", "별점순", "리뷰순", "지도맵"])
