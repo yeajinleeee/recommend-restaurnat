@@ -7,6 +7,7 @@ import os
 from dotenv import load_dotenv
 import pydeck as pdk
 from haversine import haversine
+from typing import List, Tuple
 import re
 
 # ───────────────────────────────
@@ -32,6 +33,7 @@ def get_user_location():
         return seoul_lat, seoul_lon
     return float(loc["latitude"]), float(loc["longitude"])
 
+# 카테고리 이름 표준화
 CATEGORY_ALIAS = {
     "시원한 한끼": "시원한 음식",
     "술 한잔 하기 좋은 날": "술 한잔 하기 좋은날",
@@ -71,12 +73,10 @@ def resolve_tf_column(frame: pd.DataFrame, expected_label: str) -> str | None:
             return col
     return None
 
-# prettify dataframe
 def prettify_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     if df is None or df.empty:
         return df
     df = df.copy()
-
     if "distance_m" in df.columns:
         df["거리"] = pd.to_numeric(df["distance_m"], errors="coerce").apply(
             lambda x: f"{int(x)}m" if pd.notna(x) else ""
@@ -85,13 +85,9 @@ def prettify_dataframe(df: pd.DataFrame) -> pd.DataFrame:
         df["거리"] = pd.to_numeric(df["distance_km"], errors="coerce").apply(
             lambda x: f"{x:.2f}km" if pd.notna(x) else ""
         )
-
     rename_map = {
-        "name": "이름",
         "name_g": "이름",
-        "place_name": "이름",
-        "store_name": "이름",
-        "상호명": "이름",
+        "distance": "거리",
         "category": "업태",
         "rating": "별점",
         "review_cnt": "리뷰 수",
@@ -106,212 +102,126 @@ def prettify_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 # ───────────────────────────────
 # 2. 날씨 그룹 & 추천 카테고리
 # ───────────────────────────────
-WX_GROUPS = {
-    "클리어": [800],
-    "구름":   [801, 802, 803, 804],
-    "비":     [500, 501, 502, 503, 504, 511, 520, 521, 522, 531],
-    "이슬비": [300, 301, 302, 310, 311, 312, 313, 314, 321],
-    "뇌우":   [200, 201, 202, 210, 211, 212, 221, 230, 231, 232],
-    "눈":     [600, 601, 602, 611, 612, 613, 615, 616, 620, 621, 622],
-    "분위기": [701, 711, 721, 731, 741, 751, 761, 762],
-}
+WX_GROUPS = {"클리어":[800],"구름":[801,802,803,804],"비":[500,501,502,503,504,511,520,521,522,531],
+             "이슬비":[300,301,302,310,311,312,313,314,321],
+             "뇌우":[200,201,202,210,211,212,221,230,231,232],
+             "눈":[600,601,602,611,612,613,615,616,620,621,622],
+             "분위기":[701,711,721,731,741,751,761,762]}
 WX_RECO = {
-    "클리어": {"mood": "야외활동, 기분전환, 걷기 좋은 날",
-               "cats": ["이국적인 음식","디저트/카페","술 한잔 하기 좋은 날","가볍게 간단히","시원한 한끼","해산물/생선요리"]},
-    "구름": {"mood": "실내 중심, 편안함, 든든함 추구",
-             "cats": ["든든한 한끼","뜨끈한 국물","디저트/카페","시원한 한끼","해산물/생선요리"]},
-    "비": {"mood": "외출 불편, 따뜻하거나 자극적인 음식",
-           "cats": ["뜨끈한 국물","매콤한 음식","술 한잔 하기 좋은 날","패스트푸드/배달","시원한 한끼"]},
-    "이슬비": {"mood": "활동 가능하지만 귀찮음",
-               "cats": ["디저트/카페","가볍게 간단히","건강/채식/특수식단","해산물/생선요리"]},
-    "뇌우": {"mood": "외출 최소화, 실내 고정",
-             "cats": ["육류구이/고기파티","든든한 한끼","패스트푸드/배달"]},
-    "눈": {"mood": "실내, 감성적, 따뜻함 추구",
-           "cats": ["뜨끈한 국물","육류구이/고기파티","가족/단체회식","디저트/카페","해산물/생선요리"]},
-    "분위기": {"mood": "안개/먼지 등 건강 고려",
-              "cats": ["건강/채식/특수식단","뜨끈한 국물","패스트푸드/배달"]},
+    "클리어":{"mood":"야외활동, 기분전환, 걷기 좋은 날","cats":["이국적인 음식","디저트/카페","술 한잔 하기 좋은 날","가볍게 간단히","시원한 한끼","해산물/생선요리"]},
+    "구름":{"mood":"실내 중심, 편안함, 든든함 추구","cats":["든든한 한끼","뜨끈한 국물","디저트/카페","시원한 한끼","해산물/생선요리"]},
+    "비":{"mood":"외출 불편, 따뜻하거나 자극적인 음식","cats":["뜨끈한 국물","매콤한 음식","술 한잔 하기 좋은 날","패스트푸드/배달","시원한 한끼"]},
+    "이슬비":{"mood":"활동 가능하지만 귀찮음","cats":["디저트/카페","가볍게 간단히","건강/채식/특수식단","해산물/생선요리"]},
+    "뇌우":{"mood":"외출 최소화, 실내 고정","cats":["육류구이/고기파티","든든한 한끼","패스트푸드/배달"]},
+    "눈":{"mood":"실내, 감성적, 따뜻함 추구","cats":["뜨끈한 국물","육류구이/고기파티","가족/단체회식","디저트/카페","해산물/생선요리"]},
+    "분위기":{"mood":"안개/먼지 등 건강 고려","cats":["건강/채식/특수식단","뜨끈한 국물","패스트푸드/배달"]},
 }
-
-def weather_group_from_id(weather_id: int) -> str:
-    for group_name, codes in WX_GROUPS.items():
-        if int(weather_id) in codes:
-            return group_name
+def weather_group_from_id(weather_id:int)->str:
+    for group,codes in WX_GROUPS.items():
+        if int(weather_id) in codes: return group
     return "구름"
-
-def recommended_categories_from_group(group_name: str, top_k: int | None = None):
-    cats = [norm_cat(c) for c in WX_RECO[group_name]["cats"]]
-    mood = WX_RECO[group_name]["mood"]
-    return (cats, mood) if top_k is None else (cats[:top_k], mood)
+def recommended_categories_from_group(group:str, top_k:int|None=None):
+    cats=[norm_cat(c) for c in WX_RECO[group]["cats"]]
+    mood=WX_RECO[group]["mood"]
+    return (cats,mood) if top_k is None else (cats[:top_k],mood)
 
 # ───────────────────────────────
 # 3. API
 # ───────────────────────────────
-def fetch_weather(weather_lat: float, weather_lon: float) -> dict:
-    url = f"https://api.openweathermap.org/data/2.5/weather?lat={weather_lat}&lon={weather_lon}&appid={OPENWEATHER_API_KEY}&units=metric&lang=kr"
-    res = requests.get(url, timeout=10)
-    res.raise_for_status()
-    data = res.json()
-    return {
-        "id": data["weather"][0]["id"],
-        "description": data["weather"][0]["description"],
-        "temperature": data["main"]["temp"]
-    }
+def fetch_weather(lat:float,lon:float)->dict:
+    url=f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={OPENWEATHER_API_KEY}&units=metric&lang=kr"
+    res=requests.get(url,timeout=10);res.raise_for_status();data=res.json()
+    return {"id":data["weather"][0]["id"],"description":data["weather"][0]["description"],"temperature":data["main"]["temp"]}
 
-def get_restaurant_within_500m_from_supabase(lat: float, lon: float):
+def get_restaurant_within_500m_from_supabase(lat:float,lon:float):
     try:
-        response = supabase.rpc("get_restaurant_within_500m", {
-            "user_lat": lat, "user_lng": lon
-        }).execute()
-        if not response or response.data is None or len(response.data) == 0:
-            return pd.DataFrame()
-        df = pd.DataFrame(response.data)
-
+        response=supabase.rpc("get_restaurant_within_500m",{"user_lat":lat,"user_lng":lon}).execute()
+        if not response or response.data is None or len(response.data)==0: return pd.DataFrame()
+        df=pd.DataFrame(response.data)
         if "latitude" in df.columns and "longitude" in df.columns:
-            df["distance_m"] = df.apply(
-                lambda row: haversine(
-                    (lat, lon), (row["latitude"], row["longitude"])
-                ) * 1000, axis=1
-            ).round(0).astype(int)
+            df["distance_m"]=df.apply(lambda r: haversine((lat,lon),(r["latitude"],r["longitude"]))*1000,axis=1).round(0).astype(int)
         return df
     except Exception as e:
-        st.error(f"음식점 데이터를 불러오지 못했습니다: {e}")
-        return pd.DataFrame()
+        st.error(f"음식점 데이터를 불러오지 못했습니다: {e}");return pd.DataFrame()
 
 # ───────────────────────────────
 # 4. 필터링
 # ───────────────────────────────
-def filter_by_category_tf(frame: pd.DataFrame, theme: str) -> pd.DataFrame:
-    if frame is None or frame.empty:
-        return pd.DataFrame()
-    frame = coerce_tf_bool(frame)
-    col_name = resolve_tf_column(frame, theme)
-    if not col_name:
-        return pd.DataFrame()
-    out = frame[frame[col_name] == True].copy()
-    if "distance_m" in out.columns:
-        out = out.sort_values("distance_m")
+def filter_by_category_tf(frame:pd.DataFrame,theme:str)->pd.DataFrame:
+    if frame is None or frame.empty: return pd.DataFrame()
+    frame=coerce_tf_bool(frame);col=resolve_tf_column(frame,theme)
+    if not col: return pd.DataFrame()
+    out=frame[frame[col]==True].copy()
+    if "distance_m" in out.columns: out=out.sort_values("distance_m")
     return out
-
-def select_and_filter_by_business_type(frame: pd.DataFrame):
-    if frame.empty or "category" not in frame.columns:
-        return frame, []
-    cats_all = (
-        frame["category"].dropna().astype(str).str.strip()
-        .replace("", pd.NA).dropna().unique().tolist()
-    )
-    selected = st.multiselect("업태를 선택하세요", options=cats_all, default=[])
-    filtered = frame[frame["category"].isin(selected)] if selected else frame
-    return filtered, selected
+def select_and_filter_by_business_type(frame:pd.DataFrame)->Tuple[pd.DataFrame,List[str]]:
+    if frame.empty or "category" not in frame.columns: return frame,[]
+    cats_all=frame["category"].dropna().astype(str).str.strip().replace("",pd.NA).dropna().unique().tolist()
+    selected=st.multiselect("업태를 선택하세요",options=cats_all,default=[])
+    filtered=frame[frame["category"].isin(selected)] if selected else frame
+    return filtered,selected
 
 # ───────────────────────────────
-# 5. 버튼 렌더링
-# ───────────────────────────────
-def render_prev_next_buttons(prev_label: str, prev_page: str, next_label: str, next_page: str):
-    btn_html = f"""
-    <style>
-    .nav-btn {{
-        background-color: #ffffff;
-        border: 1px solid #cccccc;
-        border-radius: 8px;
-        padding: 6px 16px;
-        font-size: 15px;
-        cursor: pointer;
-    }}
-    .nav-btn:hover {{
-        background-color: #f2f2f2;
-    }}
-    .nav-container {{
-        display: flex;
-        justify-content: space-between;
-        margin-top: 10px;
-        width: 100%;
-    }}
-    </style>
-    <div class="nav-container">
-        <div>{"<button class='nav-btn' onclick=\"window.location.reload()\">⬅ " + prev_label + "</button>" if prev_label else ""}</div>
-        <div>{"<button class='nav-btn' onclick=\"window.location.reload()\">➡ " + next_label + "</button>" if next_label else ""}</div>
-    </div>
-    """
-    st.markdown(btn_html, unsafe_allow_html=True)
-
-# ───────────────────────────────
-# 6. Main
+# 5. Main
 # ───────────────────────────────
 def main():
-    if "page" not in st.session_state:
-        st.session_state.page = "page1"
-
-    user_lat, user_lon = get_user_location()
+    if "page" not in st.session_state: st.session_state.page="page1"
+    user_lat,user_lon=get_user_location()
     try:
-        w = fetch_weather(user_lat, user_lon)
-        group_name = weather_group_from_id(w["id"])
-        opts, mood = recommended_categories_from_group(group_name)
-    except:
-        w = {"description":"알수없음","temperature":"?"}
-        group_name, opts, mood = "구름", ["가볍게 간단히","든든한 한끼","디저트/카페"], "실내 중심"
-
-    # 사이드바 카드
+        w=fetch_weather(user_lat,user_lon);group=weather_group_from_id(w["id"]);opts,mood=recommended_categories_from_group(group)
+    except: w={"description":"알수없음","temperature":"?"};group,opts,mood="구름",["가볍게 간단히","든든한 한끼","디저트/카페"],"실내 중심"
     with st.sidebar:
-        st.markdown(f"<div style='background:#fff; border-radius:10px; padding:15px; margin-bottom:15px;'>"
-                    f"<h3>📍 현재 위치</h3><p>위도: {user_lat:.4f}, 경도: {user_lon:.4f}</p></div>", unsafe_allow_html=True)
-        st.markdown(f"<div style='background:#fff; border-radius:10px; padding:15px; margin-bottom:15px;'>"
-                    f"<h3>🌤️ 현재 날씨</h3><p>{w['description']}, {w['temperature']}°C</p></div>", unsafe_allow_html=True)
-        st.markdown(f"<div style='background:#fff; border-radius:10px; padding:15px;'>"
-                    f"<h3>💡 추천 키워드</h3><p>{mood}</p></div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='background:#fff; border-radius:10px; padding:15px; margin-bottom:15px;'><h3>📍 현재 위치</h3><p>위도: {user_lat:.4f}, 경도: {user_lon:.4f}</p></div>",unsafe_allow_html=True)
+        st.markdown(f"<div style='background:#fff; border-radius:10px; padding:15px; margin-bottom:15px;'><h3>🌤️ 현재 날씨</h3><p>{w['description']}, {w['temperature']}°C</p></div>",unsafe_allow_html=True)
+        st.markdown(f"<div style='background:#fff; border-radius:10px; padding:15px;'><h3>💡 추천 키워드</h3><p>{mood}</p></div>",unsafe_allow_html=True)
 
-    all_df = get_restaurant_within_500m_from_supabase(user_lat, user_lon)
+    all_df=get_restaurant_within_500m_from_supabase(user_lat,user_lon)
 
-    # Page 1
-    if st.session_state.page == "page1":
+    # Page1
+    if st.session_state.page=="page1":
         st.header("현재 날씨에 추천 드리는 카테고리입니다.")
-        choice = st.radio("카테고리를 선택하세요 👇", options=opts)
-
-        filtered_df = filter_by_category_tf(all_df, choice)
+        choice=st.radio("카테고리를 선택하세요 👇",options=opts)
+        filtered=filter_by_category_tf(all_df,choice)
         st.subheader(f"‘{choice}’ 카테고리에 해당되는 반경 500M 내 음식점 (거리순)")
-        if not filtered_df.empty:
-            st.dataframe(prettify_dataframe(filtered_df)[["이름","거리"]], use_container_width=True, height=500)
-        else:
-            st.warning("해당 카테고리 음식점이 없습니다.")
+        if not filtered.empty: st.dataframe(prettify_dataframe(filtered[["name_g","distance_m"]]),use_container_width=True,height=500)
+        else: st.warning("해당 카테고리 음식점이 없습니다.")
+        st.markdown("<div style='display:flex; justify-content:flex-end;'>",unsafe_allow_html=True)
+        if st.button("➡ 다음"): st.session_state.choice=choice;st.session_state.page="page2";st.rerun()
+        st.markdown("</div>",unsafe_allow_html=True)
 
-        render_prev_next_buttons("", "", "다음", "page2")
-
-    # Page 2
-    elif st.session_state.page == "page2":
-        choice = st.session_state.get("choice", opts[0])
-        st.header(f"‘{choice}’ 카테고리 결과")
-
-        filtered_df = filter_by_category_tf(all_df, choice)
-        filtered, selected_types = select_and_filter_by_business_type(filtered_df)
-
-        tabs = st.tabs(["거리순", "별점순", "리뷰순", "지도"])
-        with tabs[0]:
-            st.dataframe(prettify_dataframe(filtered).sort_values("거리")[["이름","거리"]])
+    # Page2
+    elif st.session_state.page=="page2":
+        choice=st.session_state.get("choice");st.header(f"‘{choice}’ 카테고리 결과")
+        filtered=filter_by_category_tf(all_df,choice);filtered,selected=select_and_filter_by_business_type(filtered)
+        tabs=st.tabs(["거리순","별점순","리뷰순","지도"])
+        with tabs[0]: st.dataframe(prettify_dataframe(filtered.sort_values("distance_m")[["name_g","distance_m"]]))
         with tabs[1]:
-            if "별점" in prettify_dataframe(filtered).columns:
-                st.dataframe(prettify_dataframe(filtered).sort_values("별점", ascending=False)[["이름","별점"]])
+            if "rating" in filtered.columns: st.dataframe(prettify_dataframe(filtered.sort_values("rating",ascending=False)[["name_g","rating"]]))
         with tabs[2]:
-            if "리뷰 수" in prettify_dataframe(filtered).columns:
-                st.dataframe(prettify_dataframe(filtered).sort_values("리뷰 수", ascending=False)[["이름","리뷰 수"]])
+            if "review_cnt" in filtered.columns: st.dataframe(prettify_dataframe(filtered.sort_values("review_cnt",ascending=False)[["name_g","review_cnt"]]))
         with tabs[3]:
             if not filtered.empty:
-                df_map = filtered.rename(columns={"latitude":"lat","longitude":"lon"}).copy()
-                st.pydeck_chart(pdk.Deck(
-                    map_provider="maplibre",
-                    map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
-                    initial_view_state=pdk.ViewState(latitude=user_lat, longitude=user_lon, zoom=15),
-                    layers=[pdk.Layer("ScatterplotLayer", data=df_map,
-                                      get_position="[lon, lat]", get_radius=60,
-                                      get_fill_color=[255,0,0,160], pickable=True)]
-                ))
+                df_map=filtered.rename(columns={"latitude":"lat","longitude":"lon"}).copy()
+                st.pydeck_chart(pdk.Deck(map_provider="maplibre",map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
+                                         initial_view_state=pdk.ViewState(latitude=user_lat,longitude=user_lon,zoom=15),
+                                         layers=[pdk.Layer("ScatterplotLayer",data=df_map,get_position="[lon, lat]",get_radius=60,
+                                                           get_fill_color=[255,0,0,160],pickable=True)]))
+        cols=st.columns([1,1])
+        with cols[0]:
+            st.markdown("<div style='display:flex; justify-content:flex-start;'>",unsafe_allow_html=True)
+            if st.button("⬅ 이전"): st.session_state.page="page1";st.rerun()
+            st.markdown("</div>",unsafe_allow_html=True)
+        with cols[1]:
+            st.markdown("<div style='display:flex; justify-content:flex-end;'>",unsafe_allow_html=True)
+            if st.button("➡ 다음"): st.session_state.page="page3";st.rerun()
+            st.markdown("</div>",unsafe_allow_html=True)
 
-        render_prev_next_buttons("이전", "page1", "다음", "page3")
+    # Page3
+    elif st.session_state.page=="page3":
+        st.header("최종 선택");st.success("맛집 선택이 완료되었습니다! 🎉")
+        st.markdown("<div style='display:flex; justify-content:flex-start;'>",unsafe_allow_html=True)
+        if st.button("⬅ 다시 선택"): st.session_state.page="page1";st.rerun()
+        st.markdown("</div>",unsafe_allow_html=True)
 
-    # Page 3
-    elif st.session_state.page == "page3":
-        st.header("최종 선택")
-        st.success("맛집 선택이 완료되었습니다! 🎉")
+if __name__=="__main__": main()
 
-        render_prev_next_buttons("이전", "page2", "", "")
-
-if __name__ == "__main__":
-    main()
