@@ -107,7 +107,7 @@ def get_restaurant_within_500m_from_supabase(lat: float, lon: float):
             return pd.DataFrame()
         df = pd.DataFrame(response.data)
 
-        # distance_m 직접 계산 보완
+        # distance_m 계산
         if "latitude" in df.columns and "longitude" in df.columns:
             df["distance_m"] = df.apply(
                 lambda row: haversine(
@@ -130,7 +130,6 @@ def render_scroll_table(frame: pd.DataFrame) -> pd.DataFrame:
 
     df = frame.copy()
 
-    # 거리(m) 포맷
     if "distance_m" in df.columns:
         df["거리"] = (
             pd.to_numeric(df["distance_m"], errors="coerce")
@@ -140,11 +139,9 @@ def render_scroll_table(frame: pd.DataFrame) -> pd.DataFrame:
             + "m"
         )
 
-    # 이름 컬럼 정리
     if "name_g" in df.columns:
         df.rename(columns={"name_g": "이름"}, inplace=True)
 
-    # 인덱스 1부터 시작
     df.reset_index(drop=True, inplace=True)
     df.index = df.index + 1
 
@@ -177,11 +174,9 @@ def render_map(user_lat, user_lon, frame: pd.DataFrame):
         layers=layers
     ))
 
-# 업태 선택 멀티셀렉트
 def select_and_filter_by_business_type(frame: pd.DataFrame) -> Tuple[pd.DataFrame, List[str]]:
     if frame.empty or "category" not in frame.columns:
         return frame, []
-
     cats_all = (
         frame["category"]
         .dropna()
@@ -193,10 +188,8 @@ def select_and_filter_by_business_type(frame: pd.DataFrame) -> Tuple[pd.DataFram
         .unique()
         .tolist()
     )
-
     selected = st.multiselect("업태를 선택하세요", options=cats_all, default=cats_all)
     filtered = frame[frame["category"].map(norm_cat).isin(selected)]
-
     return filtered, selected
 
 # ───────────────────────────────
@@ -233,7 +226,12 @@ def main():
         st.markdown("---")
         st.subheader(f"‘{choice}’ 카테고리에 해당되는 반경 500M 내 음식점")
 
-        filtered_df = all_df[all_df["category"].map(norm_cat) == norm_cat(choice)] if "category" in all_df.columns else all_df
+        # ✅ boolean TF 칼럼 우선, 없으면 category 비교
+        if norm_cat(choice) in all_df.columns:
+            filtered_df = all_df[all_df[norm_cat(choice)] == True]
+        else:
+            filtered_df = all_df[all_df["category"].map(norm_cat) == norm_cat(choice)] if "category" in all_df.columns else all_df
+
         page_df = render_scroll_table(filtered_df)
 
         _, col_btn = st.columns([0.85, 0.15])
@@ -255,7 +253,6 @@ def main():
 
             tabs = st.tabs(["거리순", "별점순", "리뷰순", "지도맵"])
             
-            # 거리순
             with tabs[0]:
                 if "distance_m" in filtered.columns:
                     df_sorted = filtered.sort_values("distance_m", ascending=True).copy()
@@ -263,7 +260,6 @@ def main():
                 else:
                     st.warning("거리 정보가 없습니다.")
             
-            # 별점순
             with tabs[1]:
                 if "rating" in filtered.columns:
                     df_sorted = filtered.sort_values("rating", ascending=False).copy()
@@ -275,19 +271,17 @@ def main():
                 else:
                     st.warning("별점 정보가 없습니다.")
             
-            # 리뷰순
             with tabs[2]:
-                if "review_count" in filtered.columns:
-                    df_sorted = filtered.sort_values("review_count", ascending=False).copy()
+                if "review_cnt" in filtered.columns:  # ✅ 수정됨
+                    df_sorted = filtered.sort_values("review_cnt", ascending=False).copy()
                     df_sorted.rename(columns={"name_g": "이름"}, inplace=True)
                     df_sorted.reset_index(drop=True, inplace=True)
                     df_sorted.index = df_sorted.index + 1
                     st.caption(f"총 {len(df_sorted)}개 결과")
-                    st.dataframe(df_sorted[["이름", "review_count"]], use_container_width=True, height=500)
+                    st.dataframe(df_sorted[["이름", "review_cnt"]], use_container_width=True, height=500)
                 else:
                     st.warning("리뷰 수 정보가 없습니다.")
             
-            # 지도맵
             with tabs[3]:
                 render_map(user_lat, user_lon, filtered)
 
