@@ -33,13 +33,12 @@ def get_user_location():
         return seoul_lat, seoul_lon
     return float(loc["latitude"]), float(loc["longitude"])
 
-# 카테고리 이름 표준화
 CATEGORY_ALIAS = {
     "시원한 한끼": "시원한 음식",
     "술 한잔 하기 좋은 날": "술 한잔 하기 좋은날",
     "가족/단체회식": "가족/단체 외식",
     "패스트푸드/배달": "패스트푸드",
-    "헤산물/생선요리": "해산물/생선요리",  # 오타 보정
+    "헤산물/생선요리": "해산물/생선요리",
 }
 def norm_cat(name: str) -> str:
     return CATEGORY_ALIAS.get(str(name).strip(), str(name).strip())
@@ -151,7 +150,6 @@ def get_restaurant_within_500m_from_supabase(lat: float, lon: float):
 # 4. Helper
 # ───────────────────────────────
 def prettify_dataframe(df: pd.DataFrame) -> pd.DataFrame:
-    """컬럼명 한글화 및 거리 단위 붙이기"""
     if df is None or df.empty:
         return df
     df = df.copy()
@@ -181,6 +179,10 @@ def prettify_dataframe(df: pd.DataFrame) -> pd.DataFrame:
         "지번주소": "주소",
     }
     df.rename(columns=rename_map, inplace=True)
+
+    # 인덱스 1부터 시작
+    df.reset_index(drop=True, inplace=True)
+    df.index = df.index + 1
 
     return df
 
@@ -223,7 +225,6 @@ def main():
         w = {"description":"알수없음","temperature":"?"}
         group_name, opts, mood = "구름", ["가볍게 간단히","든든한 한끼","디저트/카페"], "실내 중심"
 
-    # 사이드바 카드
     with st.sidebar:
         st.markdown(f"<div style='background:#fff; border-radius:10px; padding:15px; margin-bottom:15px;'>"
                     f"<h3>📍 현재 위치</h3><p>위도: {user_lat:.4f}, 경도: {user_lon:.4f}</p></div>", unsafe_allow_html=True)
@@ -302,4 +303,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
