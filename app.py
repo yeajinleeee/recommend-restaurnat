@@ -129,16 +129,28 @@ def render_scroll_table(frame: pd.DataFrame) -> pd.DataFrame:
         return pd.DataFrame()
 
     df = frame.copy()
-    if "distance_m" in df.columns:
-        df["거리"] = pd.to_numeric(df["distance_m"], errors="coerce").round(0).astype("Int64").astype(str) + "m"
-    df.rename(columns={"name_g": "이름"}, inplace=True)
 
+    # 거리(m) 포맷
+    if "distance_m" in df.columns:
+        df["거리"] = (
+            pd.to_numeric(df["distance_m"], errors="coerce")
+            .round(0)
+            .astype("Int64")
+            .astype(str)
+            + "m"
+        )
+
+    # 이름 컬럼 정리
+    if "name_g" in df.columns:
+        df.rename(columns={"name_g": "이름"}, inplace=True)
+
+    # 인덱스 1부터 시작
     df.reset_index(drop=True, inplace=True)
     df.index = df.index + 1
 
     st.caption(f"총 {len(df)}개 결과")
-    st.dataframe(df[["이름", "거리"]] if "거리" in df.columns else df[["이름"]],
-                 use_container_width=True, height=500)
+    cols_to_show = ["이름", "거리"] if "거리" in df.columns else ["이름"]
+    st.dataframe(df[cols_to_show], use_container_width=True, height=500)
 
     return df
 
@@ -242,24 +254,40 @@ def main():
             filtered, selected_types = select_and_filter_by_business_type(filtered)
 
             tabs = st.tabs(["거리순", "별점순", "리뷰순", "지도맵"])
+            
+            # 거리순
             with tabs[0]:
                 if "distance_m" in filtered.columns:
                     df_sorted = filtered.sort_values("distance_m", ascending=True).copy()
                     render_scroll_table(df_sorted)
                 else:
                     st.warning("거리 정보가 없습니다.")
+            
+            # 별점순
             with tabs[1]:
                 if "rating" in filtered.columns:
                     df_sorted = filtered.sort_values("rating", ascending=False).copy()
-                    st.dataframe(df_sorted[["name_g","rating"]], use_container_width=True, height=500)
+                    df_sorted.rename(columns={"name_g": "이름"}, inplace=True)
+                    df_sorted.reset_index(drop=True, inplace=True)
+                    df_sorted.index = df_sorted.index + 1
+                    st.caption(f"총 {len(df_sorted)}개 결과")
+                    st.dataframe(df_sorted[["이름", "rating"]], use_container_width=True, height=500)
                 else:
                     st.warning("별점 정보가 없습니다.")
+            
+            # 리뷰순
             with tabs[2]:
                 if "review_count" in filtered.columns:
                     df_sorted = filtered.sort_values("review_count", ascending=False).copy()
-                    st.dataframe(df_sorted[["name_g","review_count"]], use_container_width=True, height=500)
+                    df_sorted.rename(columns={"name_g": "이름"}, inplace=True)
+                    df_sorted.reset_index(drop=True, inplace=True)
+                    df_sorted.index = df_sorted.index + 1
+                    st.caption(f"총 {len(df_sorted)}개 결과")
+                    st.dataframe(df_sorted[["이름", "review_count"]], use_container_width=True, height=500)
                 else:
                     st.warning("리뷰 수 정보가 없습니다.")
+            
+            # 지도맵
             with tabs[3]:
                 render_map(user_lat, user_lon, filtered)
 
@@ -291,4 +319,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
