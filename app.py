@@ -7,6 +7,7 @@ import os
 from dotenv import load_dotenv
 import pydeck as pdk
 from haversine import haversine
+from typing import List, Tuple
 import re
 
 # ───────────────────────────────
@@ -72,13 +73,15 @@ def resolve_tf_column(frame: pd.DataFrame, expected_label: str) -> str | None:
             return col
     return None
 
-# prettify DataFrame
+# ───────────────────────────────
+# prettify: 컬럼명 + 거리 단위
+# ───────────────────────────────
 def prettify_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     if df is None or df.empty:
         return df
-
     df = df.copy()
 
+    # 거리 처리
     if "distance_m" in df.columns:
         df["거리"] = pd.to_numeric(df["distance_m"], errors="coerce").apply(
             lambda x: f"{int(x)}m" if pd.notna(x) else ""
@@ -88,9 +91,10 @@ def prettify_dataframe(df: pd.DataFrame) -> pd.DataFrame:
             lambda x: f"{x:.2f}km" if pd.notna(x) else ""
         )
 
+    # 컬럼명 매핑
     rename_map = {
-        "name": "이름",
         "name_g": "이름",
+        "name": "이름",
         "place_name": "이름",
         "store_name": "이름",
         "상호명": "이름",
@@ -102,9 +106,6 @@ def prettify_dataframe(df: pd.DataFrame) -> pd.DataFrame:
         "지번주소": "주소",
     }
     df.rename(columns=rename_map, inplace=True)
-
-    df.reset_index(drop=True, inplace=True)
-    df.index = df.index + 1  # 1부터 시작
     return df
 
 # ───────────────────────────────
@@ -196,7 +197,7 @@ def filter_by_category_tf(frame: pd.DataFrame, theme: str) -> pd.DataFrame:
         out = out.sort_values("distance_m")
     return out
 
-def select_and_filter_by_business_type(frame: pd.DataFrame):
+def select_and_filter_by_business_type(frame: pd.DataFrame) -> Tuple[pd.DataFrame, List[str]]:
     if frame.empty or "category" not in frame.columns:
         return frame, []
     cats_all = (
@@ -204,9 +205,8 @@ def select_and_filter_by_business_type(frame: pd.DataFrame):
         .replace("", pd.NA).dropna().unique().tolist()
     )
     selected = st.multiselect("업태를 선택하세요", options=cats_all, default=[])
-    if selected:
-        frame = frame[frame["category"].isin(selected)]
-    return frame, selected
+    filtered = frame[frame["category"].isin(selected)] if selected else frame
+    return filtered, selected
 
 # ───────────────────────────────
 # 5. Main
@@ -224,7 +224,7 @@ def main():
         w = {"description":"알수없음","temperature":"?"}
         group_name, opts, mood = "구름", ["가볍게 간단히","든든한 한끼","디저트/카페"], "실내 중심"
 
-    # 사이드바 카드형태
+    # 사이드바 카드
     with st.sidebar:
         st.markdown(f"<div style='background:#fff; border-radius:10px; padding:15px; margin-bottom:15px;'>"
                     f"<h3>📍 현재 위치</h3><p>위도: {user_lat:.4f}, 경도: {user_lon:.4f}</p></div>", unsafe_allow_html=True)
@@ -241,19 +241,18 @@ def main():
         choice = st.radio("카테고리를 선택하세요 👇", options=opts)
 
         filtered_df = filter_by_category_tf(all_df, choice)
-        pretty_df = prettify_dataframe(filtered_df)
 
         st.subheader(f"‘{choice}’ 카테고리에 해당되는 반경 500M 내 음식점 (거리순)")
-        if not pretty_df.empty:
-            st.dataframe(pretty_df[["이름","거리"]], use_container_width=True, height=500)
+        if not filtered_df.empty:
+            df = prettify_dataframe(filtered_df)[["이름","거리"]]
+            df = df.reset_index(drop=True)
+            df.index = df.index + 1
+            st.dataframe(df, use_container_width=True, height=500)
         else:
             st.warning("해당 카테고리 음식점이 없습니다.")
 
-        col1, col2, _ = st.columns([1,1,8])
-        with col1:
-            if st.button("⬅ 이전"):
-                st.session_state.page = "page1"
-                st.rerun()
+        # 버튼: 오른쪽 정렬 (이전 없음)
+        col1, col2 = st.columns([8, 2])
         with col2:
             if st.button("➡ 다음"):
                 st.session_state.choice = choice
@@ -267,27 +266,22 @@ def main():
 
         filtered_df = filter_by_category_tf(all_df, choice)
         filtered, selected_types = select_and_filter_by_business_type(filtered_df)
-        pretty_df = prettify_dataframe(filtered)
 
         tabs = st.tabs(["거리순", "별점순", "리뷰순", "지도"])
         with tabs[0]:
-            if not pretty_df.empty:
-                st.dataframe(
-                    pretty_df.sort_values("distance_m")[["이름","거리"]],
-                    use_container_width=True, height=500
-                )
+            df = prettify_dataframe(filtered.sort_values("distance_m"))
+            df = df.reset_index(drop=True); df.index = df.index + 1
+            st.dataframe(df[["이름","거리"]])
         with tabs[1]:
-            if "별점" in pretty_df.columns:
-                st.dataframe(
-                    pretty_df.sort_values("별점", ascending=False)[["이름","별점"]],
-                    use_container_width=True, height=500
-                )
+            if "rating" in filtered.columns:
+                df = prettify_dataframe(filtered.sort_values("rating", ascending=False))
+                df = df.reset_index(drop=True); df.index = df.index + 1
+                st.dataframe(df[["이름","별점"]])
         with tabs[2]:
-            if "리뷰 수" in pretty_df.columns:
-                st.dataframe(
-                    pretty_df.sort_values("리뷰 수", ascending=False)[["이름","리뷰 수"]],
-                    use_container_width=True, height=500
-                )
+            if "review_cnt" in filtered.columns:
+                df = prettify_dataframe(filtered.sort_values("review_cnt", ascending=False))
+                df = df.reset_index(drop=True); df.index = df.index + 1
+                st.dataframe(df[["이름","리뷰 수"]])
         with tabs[3]:
             if not filtered.empty:
                 df_map = filtered.rename(columns={"latitude":"lat","longitude":"lon"}).copy()
@@ -300,7 +294,7 @@ def main():
                                       get_fill_color=[255,0,0,160], pickable=True)]
                 ))
 
-        col1, col2, _ = st.columns([1,1,8])
+        col1, col2 = st.columns([2, 8])
         with col1:
             if st.button("⬅ 이전"):
                 st.session_state.page = "page1"
