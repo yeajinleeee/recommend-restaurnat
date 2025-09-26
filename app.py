@@ -252,7 +252,7 @@ def main():
             st.warning("해당 카테고리 음식점이 없습니다.")
 
         # 버튼: 오른쪽 정렬 (이전 없음)
-        col1, col2 = st.columns([8, 2])
+        col1, col2 = st.columns([9, 1])
         with col2:
             if st.button("➡ 다음"):
                 st.session_state.choice = choice
@@ -294,7 +294,7 @@ def main():
                                       get_fill_color=[255,0,0,160], pickable=True)]
                 ))
 
-        col1, col2 = st.columns([2, 8])
+        col1, col2 = st.columns([9, 1])
         with col1:
             if st.button("⬅ 이전"):
                 st.session_state.page = "page1"
