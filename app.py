@@ -107,7 +107,7 @@ def get_restaurant_within_500m_from_supabase(lat: float, lon: float):
             return pd.DataFrame()
         df = pd.DataFrame(response.data)
 
-        # distance_m 직접 계산 보완
+        # 거리 직접 계산 보완
         if "latitude" in df.columns and "longitude" in df.columns:
             df["distance_m"] = df.apply(
                 lambda row: haversine(
@@ -129,6 +129,7 @@ def render_scroll_table(frame: pd.DataFrame) -> pd.DataFrame:
         return pd.DataFrame()
 
     df = frame.copy()
+
     if "distance_m" in df.columns:
         df["거리"] = (
             pd.to_numeric(df["distance_m"], errors="coerce")
@@ -137,14 +138,17 @@ def render_scroll_table(frame: pd.DataFrame) -> pd.DataFrame:
             .astype(str)
             + "m"
         )
+
     if "name_g" in df.columns:
         df.rename(columns={"name_g": "이름"}, inplace=True)
+
     df.reset_index(drop=True, inplace=True)
     df.index = df.index + 1
 
     st.caption(f"총 {len(df)}개 결과")
     cols_to_show = ["이름", "거리"] if "거리" in df.columns else ["이름"]
     st.dataframe(df[cols_to_show], use_container_width=True, height=500)
+
     return df
 
 def render_map(user_lat, user_lon, frame: pd.DataFrame):
@@ -173,6 +177,7 @@ def render_map(user_lat, user_lon, frame: pd.DataFrame):
 def select_and_filter_by_business_type(frame: pd.DataFrame) -> Tuple[pd.DataFrame, List[str]]:
     if frame.empty or "category" not in frame.columns:
         return frame, []
+
     cats_all = (
         frame["category"]
         .dropna()
@@ -184,8 +189,10 @@ def select_and_filter_by_business_type(frame: pd.DataFrame) -> Tuple[pd.DataFram
         .unique()
         .tolist()
     )
+
     selected = st.multiselect("업태를 선택하세요", options=cats_all, default=cats_all)
     filtered = frame[frame["category"].map(norm_cat).isin(selected)]
+
     return filtered, selected
 
 # ───────────────────────────────
@@ -222,7 +229,18 @@ def main():
         st.markdown("---")
         st.subheader(f"‘{choice}’ 카테고리에 해당되는 반경 500M 내 음식점")
 
-        # 👉 Page1에서는 카테고리만 저장
+        # ✅ 선택한 카테고리에 해당하는 음식점만 필터링 + 거리순
+        if norm_cat(choice) in all_df.columns:
+            filtered_df = all_df[all_df[norm_cat(choice)] == True].copy()
+        else:
+            filtered_df = pd.DataFrame()
+
+        if not filtered_df.empty and "distance_m" in filtered_df.columns:
+            df_sorted = filtered_df.sort_values("distance_m", ascending=True).copy()
+            render_scroll_table(df_sorted)
+        else:
+            st.warning("선택된 카테고리에 해당하는 음식점이 없거나 거리 정보가 없습니다.")
+
         _, col_btn = st.columns([0.85, 0.15])
         with col_btn:
             if st.button("다음 ➡", use_container_width=True):
@@ -238,15 +256,13 @@ def main():
         if not choice:
             st.warning("이전 단계에서 카테고리를 선택하지 않았습니다.")
         else:
-            # ✅ 1차 필터링: Page1에서 선택한 불리안 컬럼 기준
             if norm_cat(choice) in all_df.columns:
-                filtered_df = all_df[all_df[norm_cat(choice)] == True]
+                filtered_df = all_df[all_df[norm_cat(choice)] == True].copy()
             else:
                 filtered_df = all_df
 
             st.write(f"선택된 카테고리: {choice} (총 {len(filtered_df)}개)")
 
-            # ✅ 2차 필터링: 업태 멀티선택
             filtered, selected_types = select_and_filter_by_business_type(filtered_df)
 
             tabs = st.tabs(["거리순", "별점순", "리뷰순", "지도맵"])
