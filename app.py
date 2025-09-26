@@ -104,21 +104,22 @@ def get_restaurant_within_500m_from_supabase(lat: float, lon: float):
             "user_lat": lat, "user_lng": lon
         }).execute()
 
-        # 👇 디버깅용 출력
-        st.write("Supabase 응답:", response)
+        # 🔎 디버깅용 출력
+        st.subheader("📦 Supabase Raw Response")
+        st.write(response)
 
         if not response or response.data is None or len(response.data) == 0:
             return pd.DataFrame()
+
         df = pd.DataFrame(response.data)
 
-        # distance_m 직접 계산 보완
-        if "latitude" in df.columns and "longitude" in df.columns:
-            df["distance_m"] = df.apply(
-                lambda row: haversine(
-                    (lat, lon),
-                    (row["latitude"], row["longitude"])
-                ) * 1000, axis=1
-            ).round(0).astype(int)
+        st.subheader("📊 DataFrame 변환 결과 (상위 10개)")
+        st.write(df.head(10))
+
+        if "category" in df.columns:
+            st.subheader("🏷 카테고리 값 확인")
+            st.write(df["category"].unique())
+
         return df
     except Exception as e:
         st.error(f"음식점 데이터를 불러오지 못했습니다: {e}")
@@ -134,7 +135,6 @@ def render_scroll_table(frame: pd.DataFrame) -> pd.DataFrame:
 
     df = frame.copy()
 
-    # 거리(m) 포맷
     if "distance_m" in df.columns:
         df["거리"] = (
             pd.to_numeric(df["distance_m"], errors="coerce")
@@ -144,11 +144,9 @@ def render_scroll_table(frame: pd.DataFrame) -> pd.DataFrame:
             + "m"
         )
 
-    # 이름 컬럼 정리
     if "name_g" in df.columns:
         df.rename(columns={"name_g": "이름"}, inplace=True)
 
-    # 인덱스 1부터 시작
     df.reset_index(drop=True, inplace=True)
     df.index = df.index + 1
 
@@ -181,7 +179,6 @@ def render_map(user_lat, user_lon, frame: pd.DataFrame):
         layers=layers
     ))
 
-# 업태 선택 멀티셀렉트
 def select_and_filter_by_business_type(frame: pd.DataFrame) -> Tuple[pd.DataFrame, List[str]]:
     if frame.empty or "category" not in frame.columns:
         return frame, []
@@ -259,7 +256,6 @@ def main():
 
             tabs = st.tabs(["거리순", "별점순", "리뷰순", "지도맵"])
             
-            # 거리순
             with tabs[0]:
                 if "distance_m" in filtered.columns:
                     df_sorted = filtered.sort_values("distance_m", ascending=True).copy()
@@ -267,7 +263,6 @@ def main():
                 else:
                     st.warning("거리 정보가 없습니다.")
             
-            # 별점순
             with tabs[1]:
                 if "rating" in filtered.columns:
                     df_sorted = filtered.sort_values("rating", ascending=False).copy()
@@ -279,7 +274,6 @@ def main():
                 else:
                     st.warning("별점 정보가 없습니다.")
             
-            # 리뷰순
             with tabs[2]:
                 if "review_count" in filtered.columns:
                     df_sorted = filtered.sort_values("review_count", ascending=False).copy()
@@ -291,7 +285,6 @@ def main():
                 else:
                     st.warning("리뷰 수 정보가 없습니다.")
             
-            # 지도맵
             with tabs[3]:
                 render_map(user_lat, user_lon, filtered)
 
