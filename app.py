@@ -73,41 +73,6 @@ def resolve_tf_column(frame: pd.DataFrame, expected_label: str) -> str | None:
             return col
     return None
 
-# prettify_dataframe: 컬럼명 한글화 + 거리 단위 붙이기
-def prettify_dataframe(df: pd.DataFrame) -> pd.DataFrame:
-    """컬럼명 한글화 및 거리 단위 붙이기"""
-    if df is None or df.empty:
-        return df
-
-    df = df.copy()
-
-    # 거리 처리
-    if "distance_m" in df.columns:
-        df["거리"] = pd.to_numeric(df["distance_m"], errors="coerce").apply(
-            lambda x: f"{int(x)}m" if pd.notna(x) else ""
-        )
-    elif "distance_km" in df.columns:
-        df["거리"] = pd.to_numeric(df["distance_km"], errors="coerce").apply(
-            lambda x: f"{x:.2f}km" if pd.notna(x) else ""
-        )
-
-    # 컬럼명 바꾸기
-    rename_map = {
-        "name": "이름",
-        "place_name": "이름",
-        "store_name": "이름",
-        "상호명": "이름",
-        "category": "업태",
-        "rating": "별점",
-        "review_cnt": "리뷰 수",
-        "address": "주소",
-        "도로명주소": "주소",
-        "지번주소": "주소",
-    }
-    df.rename(columns=rename_map, inplace=True)
-
-    return df
-
 # ───────────────────────────────
 # 2. 날씨 그룹 & 추천 카테고리
 # ───────────────────────────────
@@ -183,8 +148,42 @@ def get_restaurant_within_500m_from_supabase(lat: float, lon: float):
         return pd.DataFrame()
 
 # ───────────────────────────────
-# 4. 필터링
+# 4. Helper
 # ───────────────────────────────
+def prettify_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+    """컬럼명 한글화 및 거리 단위 붙이기"""
+    if df is None or df.empty:
+        return df
+    df = df.copy()
+
+    # 거리 처리
+    if "distance_m" in df.columns:
+        df["거리"] = pd.to_numeric(df["distance_m"], errors="coerce").apply(
+            lambda x: f"{int(x)}m" if pd.notna(x) else ""
+        )
+    elif "distance_km" in df.columns:
+        df["거리"] = pd.to_numeric(df["distance_km"], errors="coerce").apply(
+            lambda x: f"{x:.2f}km" if pd.notna(x) else ""
+        )
+
+    # 컬럼명 매핑
+    rename_map = {
+        "name_g": "이름",
+        "name": "이름",
+        "place_name": "이름",
+        "store_name": "이름",
+        "상호명": "이름",
+        "category": "업태",
+        "rating": "별점",
+        "review_cnt": "리뷰 수",
+        "address": "주소",
+        "도로명주소": "주소",
+        "지번주소": "주소",
+    }
+    df.rename(columns=rename_map, inplace=True)
+
+    return df
+
 def filter_by_category_tf(frame: pd.DataFrame, theme: str) -> pd.DataFrame:
     if frame is None or frame.empty:
         return pd.DataFrame()
@@ -224,7 +223,7 @@ def main():
         w = {"description":"알수없음","temperature":"?"}
         group_name, opts, mood = "구름", ["가볍게 간단히","든든한 한끼","디저트/카페"], "실내 중심"
 
-    # ── 사이드바 (카드형태) ──
+    # 사이드바 카드
     with st.sidebar:
         st.markdown(f"<div style='background:#fff; border-radius:10px; padding:15px; margin-bottom:15px;'>"
                     f"<h3>📍 현재 위치</h3><p>위도: {user_lat:.4f}, 경도: {user_lon:.4f}</p></div>", unsafe_allow_html=True)
@@ -244,7 +243,8 @@ def main():
 
         st.subheader(f"‘{choice}’ 카테고리에 해당되는 반경 500M 내 음식점 (거리순)")
         if not filtered_df.empty:
-            st.dataframe(prettify_dataframe(filtered_df)[["이름","거리"]], use_container_width=True, height=500)
+            pretty_df = prettify_dataframe(filtered_df)
+            st.dataframe(pretty_df[["이름", "거리"]], use_container_width=True, height=500)
         else:
             st.warning("해당 카테고리 음식점이 없습니다.")
 
@@ -263,13 +263,16 @@ def main():
 
         tabs = st.tabs(["거리순", "별점순", "리뷰순", "지도"])
         with tabs[0]:
-            st.dataframe(prettify_dataframe(filtered).sort_values("distance_m")[["이름","거리"]])
+            pretty_df = prettify_dataframe(filtered)
+            st.dataframe(pretty_df[["이름", "거리"]], use_container_width=True)
         with tabs[1]:
             if "rating" in filtered.columns:
-                st.dataframe(prettify_dataframe(filtered).sort_values("rating", ascending=False)[["이름","별점"]])
+                pretty_df = prettify_dataframe(filtered.sort_values("rating", ascending=False))
+                st.dataframe(pretty_df[["이름", "별점"]], use_container_width=True)
         with tabs[2]:
             if "review_cnt" in filtered.columns:
-                st.dataframe(prettify_dataframe(filtered).sort_values("review_cnt", ascending=False)[["이름","리뷰 수"]])
+                pretty_df = prettify_dataframe(filtered.sort_values("review_cnt", ascending=False))
+                st.dataframe(pretty_df[["이름", "리뷰 수"]], use_container_width=True)
         with tabs[3]:
             if not filtered.empty:
                 df_map = filtered.rename(columns={"latitude":"lat","longitude":"lon"}).copy()
@@ -299,3 +302,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
