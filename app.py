@@ -103,6 +103,10 @@ def get_restaurant_within_500m_from_supabase(lat: float, lon: float):
         response = supabase.rpc("get_restaurant_within_500m", {
             "user_lat": lat, "user_lng": lon
         }).execute()
+
+        # 👇 디버깅용 출력
+        st.write("Supabase 응답:", response)
+
         if not response or response.data is None or len(response.data) == 0:
             return pd.DataFrame()
         df = pd.DataFrame(response.data)
