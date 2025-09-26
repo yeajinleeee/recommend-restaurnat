@@ -107,7 +107,7 @@ def get_restaurant_within_500m_from_supabase(lat: float, lon: float):
             return pd.DataFrame()
         df = pd.DataFrame(response.data)
 
-        # distance_m 계산
+        # distance_m 직접 계산 보완
         if "latitude" in df.columns and "longitude" in df.columns:
             df["distance_m"] = df.apply(
                 lambda row: haversine(
@@ -129,7 +129,6 @@ def render_scroll_table(frame: pd.DataFrame) -> pd.DataFrame:
         return pd.DataFrame()
 
     df = frame.copy()
-
     if "distance_m" in df.columns:
         df["거리"] = (
             pd.to_numeric(df["distance_m"], errors="coerce")
@@ -138,17 +137,14 @@ def render_scroll_table(frame: pd.DataFrame) -> pd.DataFrame:
             .astype(str)
             + "m"
         )
-
     if "name_g" in df.columns:
         df.rename(columns={"name_g": "이름"}, inplace=True)
-
     df.reset_index(drop=True, inplace=True)
     df.index = df.index + 1
 
     st.caption(f"총 {len(df)}개 결과")
     cols_to_show = ["이름", "거리"] if "거리" in df.columns else ["이름"]
     st.dataframe(df[cols_to_show], use_container_width=True, height=500)
-
     return df
 
 def render_map(user_lat, user_lon, frame: pd.DataFrame):
@@ -226,18 +222,11 @@ def main():
         st.markdown("---")
         st.subheader(f"‘{choice}’ 카테고리에 해당되는 반경 500M 내 음식점")
 
-        # ✅ boolean TF 칼럼 우선, 없으면 category 비교
-        if norm_cat(choice) in all_df.columns:
-            filtered_df = all_df[all_df[norm_cat(choice)] == True]
-        else:
-            filtered_df = all_df[all_df["category"].map(norm_cat) == norm_cat(choice)] if "category" in all_df.columns else all_df
-
-        page_df = render_scroll_table(filtered_df)
-
+        # 👉 Page1에서는 카테고리만 저장
         _, col_btn = st.columns([0.85, 0.15])
         with col_btn:
             if st.button("다음 ➡", use_container_width=True):
-                st.session_state.filtered = filtered_df
+                st.session_state.choice = choice
                 st.session_state.page = "page2"
                 st.rerun()
 
@@ -245,14 +234,18 @@ def main():
     elif st.session_state.page == "page2":
         st.header("카테고리에 해당하는 식당입니다. 자세히 알아보고 싶은 식당을 골라주세요!")
 
-        filtered = st.session_state.get("filtered", pd.DataFrame())
-        if filtered.empty:
-            st.warning("이전 단계에서 선택된 식당이 없습니다.")
+        choice = st.session_state.get("choice")
+        if not choice:
+            st.warning("이전 단계에서 카테고리를 선택하지 않았습니다.")
         else:
-            filtered, selected_types = select_and_filter_by_business_type(filtered)
+            filtered_df = all_df[all_df["category"].map(norm_cat) == norm_cat(choice)] if "category" in all_df.columns else all_df
+            st.write(f"선택된 카테고리: {choice} (총 {len(filtered_df)}개)")
+
+            filtered, selected_types = select_and_filter_by_business_type(filtered_df)
 
             tabs = st.tabs(["거리순", "별점순", "리뷰순", "지도맵"])
             
+            # 거리순
             with tabs[0]:
                 if "distance_m" in filtered.columns:
                     df_sorted = filtered.sort_values("distance_m", ascending=True).copy()
@@ -260,6 +253,7 @@ def main():
                 else:
                     st.warning("거리 정보가 없습니다.")
             
+            # 별점순
             with tabs[1]:
                 if "rating" in filtered.columns:
                     df_sorted = filtered.sort_values("rating", ascending=False).copy()
@@ -271,8 +265,9 @@ def main():
                 else:
                     st.warning("별점 정보가 없습니다.")
             
+            # 리뷰순
             with tabs[2]:
-                if "review_cnt" in filtered.columns:  # ✅ 수정됨
+                if "review_cnt" in filtered.columns:
                     df_sorted = filtered.sort_values("review_cnt", ascending=False).copy()
                     df_sorted.rename(columns={"name_g": "이름"}, inplace=True)
                     df_sorted.reset_index(drop=True, inplace=True)
@@ -282,6 +277,7 @@ def main():
                 else:
                     st.warning("리뷰 수 정보가 없습니다.")
             
+            # 지도맵
             with tabs[3]:
                 render_map(user_lat, user_lon, filtered)
 
