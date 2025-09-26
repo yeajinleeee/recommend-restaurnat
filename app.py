@@ -294,7 +294,7 @@ def main():
                                       get_fill_color=[255,0,0,160], pickable=True)]
                 ))
 
-        col1, col2 = st.columns([1,9])
+        col1, col2 = st.columns([9,1])
         with col1:
             if st.button("⬅ 이전"):
                 st.session_state.page = "page1"
