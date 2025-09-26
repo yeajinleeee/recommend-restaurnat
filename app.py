@@ -229,9 +229,9 @@ def main():
         st.markdown("---")
         st.subheader(f"‘{choice}’ 카테고리에 해당되는 반경 500M 내 음식점")
 
-        # ✅ 선택한 카테고리에 해당하는 음식점만 필터링 + 거리순
-        if norm_cat(choice) in all_df.columns:
-            filtered_df = all_df[all_df[norm_cat(choice)] == True].copy()
+        # ✅ 불리안 칼럼 기반 필터링 + 거리순
+        if choice in all_df.columns:
+            filtered_df = all_df[all_df[choice] == True].copy()
         else:
             filtered_df = pd.DataFrame()
 
@@ -256,8 +256,8 @@ def main():
         if not choice:
             st.warning("이전 단계에서 카테고리를 선택하지 않았습니다.")
         else:
-            if norm_cat(choice) in all_df.columns:
-                filtered_df = all_df[all_df[norm_cat(choice)] == True].copy()
+            if choice in all_df.columns:
+                filtered_df = all_df[all_df[choice] == True].copy()
             else:
                 filtered_df = all_df
 
