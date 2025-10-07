@@ -9,7 +9,7 @@ import pydeck as pdk
 from haversine import haversine
 from typing import List, Tuple
 import re
-import urllib.parse  # ✅ 추가
+import urllib.parse
 
 # ───────────────────────────────
 # 0. 환경 설정
@@ -19,7 +19,7 @@ SUPABASE_URL: str = os.getenv("SUPABASE_URL")
 SUPABASE_KEY: str = os.getenv("SUPABASE_API_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 OPENWEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
-GOOGLE_PLACES_API_KEY = os.getenv("GOOGLE_PLACES_API_KEY")  # ✅ 추가
+GOOGLE_PLACES_API_KEY = os.getenv("GOOGLE_PLACES_API_KEY")
 
 st.set_page_config(page_title="날씨 + 위치 기반 음식점 추천", page_icon="🍜", layout="wide")
 st.title("날씨 + 위치 기반 음식점 추천 🌨️")
@@ -108,7 +108,7 @@ def prettify_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 # ───────────────────────────────
-# 3+. Google Places API (대표 이미지)
+# 3+. Google Places API (이미지용)
 # ───────────────────────────────
 def get_place_photo_url(place_name: str) -> str | None:
     try:
@@ -131,7 +131,7 @@ def get_place_photo_url(place_name: str) -> str | None:
         return None
 
 # ───────────────────────────────
-# 3++. 카드형 표시 함수 (+요인)
+# 카드형 표시 함수 (+요인)
 # ───────────────────────────────
 def show_restaurant_card(info: dict):
     if not info:
@@ -152,7 +152,7 @@ def show_restaurant_card(info: dict):
     st.markdown(html, unsafe_allow_html=True)
 
 # ───────────────────────────────
-# 3+++. Supabase 함수 (복원)
+# Supabase 함수
 # ───────────────────────────────
 def get_restaurant_within_500m_from_supabase(lat: float, lon: float):
     try:
@@ -175,7 +175,7 @@ def get_restaurant_within_500m_from_supabase(lat: float, lon: float):
         return pd.DataFrame()
 
 # ───────────────────────────────
-# 5. Main (추가된 기능 포함)
+# Main
 # ───────────────────────────────
 def main():
     if "page" not in st.session_state:
@@ -184,51 +184,36 @@ def main():
         st.session_state.selected_restaurant = None
 
     user_lat, user_lon = get_user_location()
-    try:
-        w = fetch_weather(user_lat, user_lon)
-        group_name = weather_group_from_id(w["id"])
-        opts, mood = recommended_categories_from_group(group_name)
-    except:
-        w = {"description": "알수없음", "temperature": "?"}
-        group_name, opts, mood = "구름", ["가볍게 간단히", "든든한 한끼", "디저트/카페"], "실내 중심"
-
-    with st.sidebar:
-        st.markdown(f"<div style='background:#fff;border-radius:10px;padding:15px;margin-bottom:15px;'>"
-                    f"<h3>📍 현재 위치</h3><p>위도: {user_lat:.4f}, 경도: {user_lon:.4f}</p></div>", unsafe_allow_html=True)
-        st.markdown(f"<div style='background:#fff;border-radius:10px;padding:15px;margin-bottom:15px;'>"
-                    f"<h3>🌤️ 현재 날씨</h3><p>{w['description']}, {w['temperature']}°C</p></div>", unsafe_allow_html=True)
-        st.markdown(f"<div style='background:#fff;border-radius:10px;padding:15px;'>"
-                    f"<h3>💡 추천 키워드</h3><p>{mood}</p></div>", unsafe_allow_html=True)
-
     all_df = get_restaurant_within_500m_from_supabase(user_lat, user_lon)
 
     # ───────────── Page1 ─────────────
     if st.session_state.page == "page1":
         st.header("현재 날씨에 추천 드리는 카테고리입니다.")
-        choice = st.radio("카테고리를 선택하세요 👇", options=opts)
-        filtered_df = filter_by_category_tf(all_df, choice)
+        choice = st.radio("카테고리를 선택하세요 👇", ["시원한 음식", "든든한 한끼", "디저트/카페"])
+        filtered_df = all_df  # 간단히 예시
 
+        st.subheader("근처 음식점 (링크 클릭 시 지도 열기)")
         if not filtered_df.empty:
-            df = prettify_dataframe(filtered_df)[["이름","거리","주소","별점","리뷰 수","지도링크"]]
-            st.dataframe(df, use_container_width=True, height=500)
+            df = prettify_dataframe(filtered_df)[["이름","거리","지도링크"]]
+            for _, row in df.iterrows():
+                st.markdown(f"[{row['이름']}]({row['지도링크']}) — {row['거리']}", unsafe_allow_html=True)
         else:
             st.warning("해당 카테고리 음식점이 없습니다.")
 
         if st.button("➡ 다음"):
-            st.session_state.choice = choice
             st.session_state.page = "page2"
             st.rerun()
 
-    # ───────────── Page2 (+요인) ─────────────
+    # ───────────── Page2 ─────────────
     elif st.session_state.page == "page2":
-        choice = st.session_state.get("choice")
-        st.header(f"‘{choice}’ 카테고리 결과")
-        filtered_df = filter_by_category_tf(all_df, choice)
-
-        if not filtered_df.empty:
-            df = prettify_dataframe(filtered_df)[["이름","거리","주소","별점","리뷰 수","지도링크"]]
-            for i, row in df.iterrows():
-                if st.button(row["이름"], key=f"btn_{i}"):
+        st.header("세부 추천 리스트")
+        filtered_df = prettify_dataframe(all_df)[["이름","거리","주소","별점","리뷰 수","지도링크"]]
+        for i, row in filtered_df.iterrows():
+            col1, col2 = st.columns([8,2])
+            with col1:
+                st.markdown(f"**{row['이름']}** — {row['거리']} | ⭐ {row['별점']} | 💬 {row['리뷰 수']}")
+            with col2:
+                if st.button("선택하기", key=f"sel_{i}"):
                     st.session_state.selected_restaurant = row.to_dict()
                     st.session_state.page = "page3"
                     st.rerun()
@@ -237,18 +222,18 @@ def main():
             st.session_state.page = "page1"
             st.rerun()
 
-    # ───────────── Page3 (+요인) ─────────────
+    # ───────────── Page3 ─────────────
     elif st.session_state.page == "page3":
         st.header("🍽️ 선택한 가게 정보")
         if st.session_state.selected_restaurant:
             show_restaurant_card(st.session_state.selected_restaurant)
         else:
             st.warning("선택된 가게가 없습니다.")
-
         if st.button("⬅ 다시 선택"):
             st.session_state.page = "page2"
             st.rerun()
 
 if __name__ == "__main__":
     main()
+
 
