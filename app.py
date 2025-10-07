@@ -152,12 +152,30 @@ def show_restaurant_card(info: dict):
     st.markdown(html, unsafe_allow_html=True)
 
 # ───────────────────────────────
-# (이하 날씨, API, 필터링, main 등 기존 동일)
+# 3+++. Supabase 함수 (복원)
 # ───────────────────────────────
-# ... 기존 WX_GROUPS, WX_RECO, fetch_weather, get_restaurant_within_500m_from_supabase, filter_by_category_tf 등 동일 ...
+def get_restaurant_within_500m_from_supabase(lat: float, lon: float):
+    try:
+        response = supabase.rpc("get_restaurant_within_500m", {
+            "user_lat": lat, "user_lng": lon
+        }).execute()
+
+        if not response or response.data is None or len(response.data) == 0:
+            return pd.DataFrame()
+
+        df = pd.DataFrame(response.data)
+        if "latitude" in df.columns and "longitude" in df.columns:
+            df["distance_m"] = df.apply(
+                lambda row: haversine((lat, lon), (row["latitude"], row["longitude"])) * 1000,
+                axis=1
+            ).round(0).astype(int)
+        return df
+    except Exception as e:
+        st.error(f"음식점 데이터를 불러오지 못했습니다: {e}")
+        return pd.DataFrame()
 
 # ───────────────────────────────
-# 5. Main (+요인만 추가)
+# 5. Main (추가된 기능 포함)
 # ───────────────────────────────
 def main():
     if "page" not in st.session_state:
@@ -165,7 +183,6 @@ def main():
     if "selected_restaurant" not in st.session_state:
         st.session_state.selected_restaurant = None
 
-    # 기존 내용 전부 유지 (위치, 날씨, supabase 데이터 로드 포함)
     user_lat, user_lon = get_user_location()
     try:
         w = fetch_weather(user_lat, user_lon)
@@ -191,21 +208,16 @@ def main():
         choice = st.radio("카테고리를 선택하세요 👇", options=opts)
         filtered_df = filter_by_category_tf(all_df, choice)
 
-        st.subheader(f"‘{choice}’ 카테고리에 해당되는 반경 500M 내 음식점 (거리순)")
         if not filtered_df.empty:
             df = prettify_dataframe(filtered_df)[["이름","거리","주소","별점","리뷰 수","지도링크"]]
-            df = df.reset_index(drop=True)
-            df.index = df.index + 1
             st.dataframe(df, use_container_width=True, height=500)
         else:
             st.warning("해당 카테고리 음식점이 없습니다.")
 
-        col1, col2 = st.columns([9,1])
-        with col2:
-            if st.button("➡ 다음"):
-                st.session_state.choice = choice
-                st.session_state.page = "page2"
-                st.rerun()
+        if st.button("➡ 다음"):
+            st.session_state.choice = choice
+            st.session_state.page = "page2"
+            st.rerun()
 
     # ───────────── Page2 (+요인) ─────────────
     elif st.session_state.page == "page2":
@@ -215,21 +227,15 @@ def main():
 
         if not filtered_df.empty:
             df = prettify_dataframe(filtered_df)[["이름","거리","주소","별점","리뷰 수","지도링크"]]
-            df = df.reset_index(drop=True)
-            df.index = df.index + 1
-
-            # ✅ 이름 클릭 시 page3으로 이동
             for i, row in df.iterrows():
                 if st.button(row["이름"], key=f"btn_{i}"):
                     st.session_state.selected_restaurant = row.to_dict()
                     st.session_state.page = "page3"
                     st.rerun()
 
-        col1, col2 = st.columns([9,1])
-        with col1:
-            if st.button("⬅ 이전"):
-                st.session_state.page = "page1"
-                st.rerun()
+        if st.button("⬅ 이전"):
+            st.session_state.page = "page1"
+            st.rerun()
 
     # ───────────── Page3 (+요인) ─────────────
     elif st.session_state.page == "page3":
