@@ -320,8 +320,8 @@ def main():
                 st.session_state.page = "page2"
                 st.rerun()
 
-    # ───────────────────────────────
-    # Page 2
+   # ───────────────────────────────
+    # Page 2 (탐색 + 링크 보기)
     # ───────────────────────────────
     elif st.session_state.page == "page2":
         choice = st.session_state.get("choice")
@@ -339,6 +339,7 @@ def main():
             df = prettify_dataframe(filtered.sort_values("distance_m"))
             df = df.reset_index(drop=True)
             df.index = df.index + 1
+    
             st.dataframe(df[["이름", "거리"]], use_container_width=True, height=420)
     
             if not df.empty:
@@ -346,11 +347,7 @@ def main():
                 clicked_row = st.selectbox("식당 선택", df["이름"])
                 link = df.loc[df["이름"] == clicked_row, "map_link"].iloc[0]
     
-                # ✅ 선택 즉시 세션에 저장
-                st.session_state.selected_place = clicked_row
-                st.session_state.selected_link = link
-    
-                # 🌐 버튼처럼 보이는 링크 (실제 새 탭에서 열림)
+                # 🌐 하늘색 링크 버튼 (새 탭에서 열림)
                 st.markdown(
                     f"""
                     <a href="{link}" target="_blank" style="text-decoration:none;">
@@ -384,6 +381,33 @@ def main():
                 df.index = df.index + 1
                 st.dataframe(df[["이름", "별점"]], use_container_width=True, height=420)
     
+                if not df.empty:
+                    st.markdown("### 🔗 열고 싶은 식당을 선택하세요 👇")
+                    clicked_row = st.selectbox("식당 선택 (별점순)", df["이름"])
+                    link = df.loc[df["이름"] == clicked_row, "map_link"].iloc[0]
+                    st.markdown(
+                        f"""
+                        <a href="{link}" target="_blank" style="text-decoration:none;">
+                            <button style="
+                                background-color:#87CEEB;
+                                color:white;
+                                border:none;
+                                padding:10px 18px;
+                                border-radius:8px;
+                                cursor:pointer;
+                                font-size:16px;
+                                font-weight:500;
+                                box-shadow:0 2px 4px rgba(0,0,0,0.1);
+                                transition:0.2s;
+                            " onmouseover="this.style.backgroundColor='#5ec2e0'" 
+                              onmouseout="this.style.backgroundColor='#87CEEB'">
+                                🌐 링크 열기
+                            </button>
+                        </a>
+                        """,
+                        unsafe_allow_html=True
+                    )
+    
         # ───────────────────────────────
         # 리뷰순 탭
         # ───────────────────────────────
@@ -393,6 +417,33 @@ def main():
                 df = df.reset_index(drop=True)
                 df.index = df.index + 1
                 st.dataframe(df[["이름", "리뷰 수"]], use_container_width=True, height=420)
+    
+                if not df.empty:
+                    st.markdown("### 🔗 열고 싶은 식당을 선택하세요 👇")
+                    clicked_row = st.selectbox("식당 선택 (리뷰순)", df["이름"])
+                    link = df.loc[df["이름"] == clicked_row, "map_link"].iloc[0]
+                    st.markdown(
+                        f"""
+                        <a href="{link}" target="_blank" style="text-decoration:none;">
+                            <button style="
+                                background-color:#87CEEB;
+                                color:white;
+                                border:none;
+                                padding:10px 18px;
+                                border-radius:8px;
+                                cursor:pointer;
+                                font-size:16px;
+                                font-weight:500;
+                                box-shadow:0 2px 4px rgba(0,0,0,0.1);
+                                transition:0.2s;
+                            " onmouseover="this.style.backgroundColor='#5ec2e0'" 
+                              onmouseout="this.style.backgroundColor='#87CEEB'">
+                                🌐 링크 열기
+                            </button>
+                        </a>
+                        """,
+                        unsafe_allow_html=True
+                    )
     
         # ───────────────────────────────
         # 지도 탭
@@ -433,37 +484,76 @@ def main():
     
     
     # ───────────────────────────────
-    # Page 3
+    # Page 3 (최종 선택 + 상세 카드)
     # ───────────────────────────────
     elif st.session_state.page == "page3":
-        st.header("🎉 추천 완료")
+        st.header("🎯 최종 선택")
     
         choice = st.session_state.get("choice")
-        place = st.session_state.get("selected_place")
-        link = st.session_state.get("selected_link")
+        filtered_df = filter_by_category_tf(all_df, choice)
     
-        if place:
+        if filtered_df.empty:
+            st.warning("선택 가능한 식당이 없습니다. 2페이지에서 다시 선택해주세요.")
+        else:
+            df = prettify_dataframe(filtered_df).copy()
+            df = df.reset_index(drop=True)
+    
             st.markdown(f"### 오늘의 분위기: **{choice}**")
-            st.markdown(f"#### 선택한 식당: 🍜 **{place}**")
+            st.markdown("#### 최종으로 방문할 식당을 선택하세요 👇")
     
-            # 지도 열기(새 탭)
+            selected_name = st.selectbox("식당 선택", df["이름"])
+            selected_row = df[df["이름"] == selected_name].iloc[0]
+    
+            # 카드 정보 표시
+            def info_line(icon, label, value):
+                if value not in [None, "", "nan", "정보 없음"]:
+                    return f"<p style='margin:5px 0;'>{icon} <b>{label}:</b> {value}</p>"
+                return ""
+    
+            info_html = (
+                info_line("📍", "거리", selected_row.get("거리")) +
+                info_line("⭐", "별점", selected_row.get("별점")) +
+                info_line("💬", "리뷰 수", selected_row.get("리뷰 수")) +
+                info_line("🏠", "주소", selected_row.get("주소"))
+            )
+    
+            st.markdown("---")
             st.markdown(
                 f"""
-                <a href="{link}" target="_blank" style="text-decoration:none;">
-                  <button style="
-                    background-color:#87CEEB; color:white; border:none;
-                    padding:10px 18px; border-radius:8px; cursor:pointer;
-                    font-size:16px; font-weight:500; box-shadow:0 2px 4px rgba(0,0,0,0.1);
-                    transition:.2s;" onmouseover="this.style.backgroundColor='#5ec2e0'"
-                    onmouseout="this.style.backgroundColor='#87CEEB'">🌐 지도에서 보기
-                  </button>
-                </a>
+                <div style="
+                    background-color: #ffffff;
+                    border-radius: 12px;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                    padding: 20px;
+                    margin-top: 10px;
+                    margin-bottom: 20px;
+                    border: 1px solid #e8e8e8;">
+                    <h3 style="margin-bottom:5px;">🍴 {selected_row['이름']}</h3>
+                    {info_html}
+                    <a href="{selected_row['map_link']}" target="_blank" style="text-decoration:none;">
+                        <button style="
+                            background-color:#87CEEB;
+                            color:white;
+                            border:none;
+                            padding:10px 18px;
+                            border-radius:8px;
+                            cursor:pointer;
+                            font-size:16px;
+                            font-weight:500;
+                            box-shadow:0 2px 4px rgba(0,0,0,0.1);
+                            transition:0.2s;
+                            margin-top:10px;"
+                            onmouseover="this.style.backgroundColor='#5ec2e0'"
+                            onmouseout="this.style.backgroundColor='#87CEEB'">
+                            🌐 지도에서 보기
+                        </button>
+                    </a>
+                </div>
                 """,
                 unsafe_allow_html=True
             )
-        else:
-            st.info("2페이지에서 식당을 선택하면 여기에 표시됩니다.")
     
+        # 페이지 이동 버튼
         st.divider()
         col1, col2 = st.columns(2)
         with col1:
