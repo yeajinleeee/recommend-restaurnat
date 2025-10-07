@@ -304,11 +304,11 @@ def main():
             df = df.reset_index(drop=True)
             df.index = df.index + 1
     
-            # ── 표 출력 ─────────────────
+            # ── 표 출력 (Streamlit 기본 스타일 유지) ─────────────────
             st.dataframe(
                 df[["이름", "거리"]],
-                use_container_width=True,
-                height=420,
+                use_container_width=True,  # 전체 너비 확장
+                height=420,                # 10행 정도 표시
             )
     
             # ── 링크 열기 기능 ─────────────────
@@ -316,20 +316,35 @@ def main():
             clicked_row = st.selectbox("식당 선택", df["이름"])
             link = df.loc[df["이름"] == clicked_row, "map_link"].iloc[0]
     
-            if st.button("🌐 링크 열기", type="primary"):
-                st.markdown(
-                    f"""
-                    <div style="margin-top:10px; font-size:17px;">
-                        ✅ {clicked_row}의 위치를 새 탭에서 보시려면 아래 링크를 클릭하세요.<br>
-                        👉 <a href="{link}" target="_blank" style="color:#1E90FF; font-weight:600;">지도 열기</a>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
+            # 🌐 버튼처럼 보이는 링크 (실제 새 탭에서 열림)
+            st.markdown(
+                f"""
+                <div style="margin-top: 10px;">
+                    <a href="{link}" target="_blank" style="text-decoration: none;">
+                        <button style="
+                            background-color: #87CEEB;
+                            color: white;
+                            border: none;
+                            padding: 10px 18px;
+                            border-radius: 8px;
+                            cursor: pointer;
+                            font-size: 16px;
+                            font-weight: 500;
+                            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                            transition: 0.2s;
+                        " onmouseover="this.style.backgroundColor='#5ec2e0'" 
+                          onmouseout="this.style.backgroundColor='#87CEEB'">
+                            🌐 링크 열기
+                        </button>
+                    </a>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
     
         else:
             st.warning("해당 카테고리 음식점이 없습니다.")
-
+    
         # ── 페이지 이동 버튼 ─────────────────
         col1, col2 = st.columns([9, 1])
         with col2:
