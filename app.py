@@ -69,7 +69,7 @@ def _normalize_label(s: str) -> str:
     if s is None:
         return ""
     s = str(s).lower()
-    return re.sub(r"[\s/_\-()]+", "", s)
+    return re.sub(r"[\s/_\\-()]+", "", s)
 
 
 def coerce_tf_bool(frame: pd.DataFrame) -> pd.DataFrame:
@@ -262,6 +262,7 @@ def main():
         w = {"description": "알수없음", "temperature": "?"}
         group_name, opts, mood = "구름", ["가볍게 간단히", "든든한 한끼", "디저트/카페"], "실내 중심"
 
+    # 사이드바 카드
     with st.sidebar:
         st.markdown(
             f"<div style='background:#fff; border-radius:10px; padding:15px; margin-bottom:15px;'>"
@@ -281,7 +282,9 @@ def main():
 
     all_df = get_restaurant_within_500m_from_supabase(user_lat, user_lon)
 
+    # ───────────────────────────────
     # Page 1
+    # ───────────────────────────────
     if st.session_state.page == "page1":
         st.header("현재 날씨에 추천 드리는 카테고리입니다.")
         choice = st.radio("카테고리를 선택하세요 👇", options=opts)
@@ -292,21 +295,64 @@ def main():
         if not filtered_df.empty:
             df = prettify_dataframe(filtered_df).copy()
 
-            # ✅ map_link가 있으면 이름에 마크다운 하이퍼링크 추가
             if "map_link" in filtered_df.columns:
-                df["이름(링크)"] = df.apply(
-                    lambda row: f"[{row['이름']}]({row['map_link']})"
+                df["이름"] = df.apply(
+                    lambda row: f"<a href='{row['map_link']}' target='_blank'>{row['이름']}</a>"
                     if pd.notna(row.get("map_link")) else row["이름"],
                     axis=1
                 )
-            else:
-                df["이름(링크)"] = df["이름"]
 
-            df = df[["이름(링크)", "거리"]].reset_index(drop=True)
+            df = df[["이름", "거리"]].reset_index(drop=True)
             df.index = df.index + 1
 
-            # ✅ 스크롤 가능, 전체 폭 맞춤
-            st.dataframe(df, use_container_width=True, height=500)
+            # ✅ CSS로 스크롤 테이블 스타일 지정
+            st.markdown(
+                """
+                <style>
+                .scroll-table {
+                    max-height: 500px;
+                    overflow-y: auto;
+                    border: 1px solid #ddd;
+                    border-radius: 10px;
+                    margin-top: 10px;
+                }
+                .scroll-table table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    font-size: 15px;
+                }
+                .scroll-table th {
+                    position: sticky;
+                    top: 0;
+                    background: #f7f7f7;
+                    border-bottom: 2px solid #ddd;
+                    text-align: left;
+                    padding: 8px;
+                }
+                .scroll-table td {
+                    border-bottom: 1px solid #eee;
+                    padding: 8px;
+                }
+                .scroll-table tr:hover td {
+                    background-color: #f5f5f5;
+                }
+                a {
+                    color: #0366d6;
+                    text-decoration: none;
+                }
+                a:hover {
+                    text-decoration: underline;
+                }
+                </style>
+                """,
+                unsafe_allow_html=True
+            )
+
+            # ✅ 스크롤 가능한 표로 출력
+            st.markdown(
+                f"<div class='scroll-table'>{df.to_html(escape=False, index=True, justify='left')}</div>",
+                unsafe_allow_html=True
+            )
         else:
             st.warning("해당 카테고리 음식점이 없습니다.")
 
@@ -317,6 +363,9 @@ def main():
                 st.session_state.page = "page2"
                 st.rerun()
 
+    # ───────────────────────────────
+    # Page 2
+    # ───────────────────────────────
     elif st.session_state.page == "page2":
         choice = st.session_state.get("choice")
         st.header(f"‘{choice}’ 카테고리 결과")
@@ -330,21 +379,21 @@ def main():
             df = prettify_dataframe(filtered.sort_values("distance_m"))
             df = df.reset_index(drop=True)
             df.index = df.index + 1
-            st.dataframe(df[["이름", "거리"]])
+            st.dataframe(df[["이름", "거리"]], use_container_width=True, height=400)
 
         with tabs[1]:
             if "rating" in filtered.columns:
                 df = prettify_dataframe(filtered.sort_values("rating", ascending=False))
                 df = df.reset_index(drop=True)
                 df.index = df.index + 1
-                st.dataframe(df[["이름", "별점"]])
+                st.dataframe(df[["이름", "별점"]], use_container_width=True, height=400)
 
         with tabs[2]:
             if "review_cnt" in filtered.columns:
                 df = prettify_dataframe(filtered.sort_values("review_cnt", ascending=False))
                 df = df.reset_index(drop=True)
                 df.index = df.index + 1
-                st.dataframe(df[["이름", "리뷰 수"]])
+                st.dataframe(df[["이름", "리뷰 수"]], use_container_width=True, height=400)
 
         with tabs[3]:
             if not filtered.empty:
@@ -379,6 +428,9 @@ def main():
                 st.session_state.page = "page3"
                 st.rerun()
 
+    # ───────────────────────────────
+    # Page 3
+    # ───────────────────────────────
     elif st.session_state.page == "page3":
         st.header("최종 선택")
         st.success("맛집 선택이 완료되었습니다! 🎉")
@@ -390,4 +442,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
