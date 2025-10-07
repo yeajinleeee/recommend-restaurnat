@@ -297,28 +297,43 @@ def main():
     all_df = get_restaurant_within_500m_from_supabase(user_lat, user_lon)
 
     # Page 1
-    if st.session_state.page == "page1":
-        st.header("현재 날씨에 추천 드리는 카테고리입니다.")
-        choice = st.radio("카테고리를 선택하세요 👇", options=opts)
-        filtered_df = filter_by_category_tf(all_df, choice)
+if st.session_state.page == "page1":
+    st.header("현재 날씨에 추천 드리는 카테고리입니다.")
+    choice = st.radio("카테고리를 선택하세요 👇", options=opts)
+    filtered_df = filter_by_category_tf(all_df, choice)
 
-        st.subheader(f"‘{choice}’ 카테고리에 해당되는 반경 500M 내 음식점 (거리순)")
+    st.subheader(f"‘{choice}’ 카테고리에 해당되는 반경 500M 내 음식점 (거리순)")
 
-        if not filtered_df.empty:
-            df = prettify_dataframe(filtered_df)[["이름", "거리"]]
-            df = df.reset_index(drop=True)
-            df.index = df.index + 1
-            st.dataframe(df, use_container_width=True, height=500)
-        else:
-            st.warning("해당 카테고리 음식점이 없습니다.")
+    if not filtered_df.empty:
+        df = prettify_dataframe(filtered_df).copy()
 
-        # 버튼: 오른쪽 정렬
-        col1, col2 = st.columns([9, 1])
-        with col2:
-            if st.button("➡ 다음"):
-                st.session_state.choice = choice
-                st.session_state.page = "page2"
-                st.rerun()
+        # ✅ map_link가 있다면 이름에 하이퍼링크 연결
+        if "map_link" in filtered_df.columns:
+            df["이름"] = df.apply(
+                lambda row: f"<a href='{row['map_link']}' target='_blank'>{row['이름']}</a>"
+                if pd.notna(row.get("map_link")) else row["이름"],
+                axis=1
+            )
+
+        df = df[["이름", "거리"]].reset_index(drop=True)
+        df.index = df.index + 1
+
+        # ✅ HTML로 테이블 렌더링 (하이퍼링크 클릭 가능)
+        st.markdown(
+            df.to_html(escape=False, index=True, justify="left"),
+            unsafe_allow_html=True
+        )
+
+    else:
+        st.warning("해당 카테고리 음식점이 없습니다.")
+
+    # 버튼: 오른쪽 정렬
+    col1, col2 = st.columns([9, 1])
+    with col2:
+        if st.button("➡ 다음"):
+            st.session_state.choice = choice
+            st.session_state.page = "page2"
+            st.rerun()
 
     # Page 2
     elif st.session_state.page == "page2":
