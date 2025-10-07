@@ -26,6 +26,17 @@ st.set_page_config(
     layout="wide"
 )
 
+# 페이지 전체를 중앙 정렬
+st.markdown("""
+    <style>
+    .block-container {
+        max-width: 1100px;
+        margin: auto;
+        padding-top: 1rem;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 st.title("날씨 + 위치 기반 음식점 추천 🌨️")
 
 # ───────────────────────────────
@@ -41,13 +52,12 @@ def get_user_location():
     return float(loc["latitude"]), float(loc["longitude"])
 
 
-# 카테고리 이름 표준화
 CATEGORY_ALIAS = {
     "시원한 한끼": "시원한 음식",
     "술 한잔 하기 좋은 날": "술 한잔 하기 좋은날",
     "가족/단체회식": "가족/단체 외식",
     "패스트푸드/배달": "패스트푸드",
-    "헤산물/생선요리": "해산물/생선요리",  # 오타 보정
+    "헤산물/생선요리": "해산물/생선요리",
 }
 
 
@@ -59,7 +69,7 @@ def _normalize_label(s: str) -> str:
     if s is None:
         return ""
     s = str(s).lower()
-    return re.sub(r"[\s/_\-()]+", "", s)
+    return re.sub(r"[\\s/_\\-()]+", "", s)
 
 
 def coerce_tf_bool(frame: pd.DataFrame) -> pd.DataFrame:
@@ -90,15 +100,11 @@ def resolve_tf_column(frame: pd.DataFrame, expected_label: str) -> str | None:
     return None
 
 
-# ───────────────────────────────
-# prettify: 컬럼명 + 거리 단위
-# ───────────────────────────────
 def prettify_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     if df is None or df.empty:
         return df
     df = df.copy()
 
-    # 거리 처리
     if "distance_m" in df.columns:
         df["거리"] = pd.to_numeric(df["distance_m"], errors="coerce").apply(
             lambda x: f"{int(x)}m" if pd.notna(x) else ""
@@ -108,7 +114,6 @@ def prettify_dataframe(df: pd.DataFrame) -> pd.DataFrame:
             lambda x: f"{x:.2f}km" if pd.notna(x) else ""
         )
 
-    # 컬럼명 매핑
     rename_map = {
         "name_g": "이름",
         "name": "이름",
@@ -231,9 +236,6 @@ def get_restaurant_within_500m_from_supabase(lat: float, lon: float):
         return pd.DataFrame()
 
 
-# ───────────────────────────────
-# 4. 필터링
-# ───────────────────────────────
 def filter_by_category_tf(frame: pd.DataFrame, theme: str) -> pd.DataFrame:
     if frame is None or frame.empty:
         return pd.DataFrame()
@@ -276,27 +278,26 @@ def main():
         w = {"description": "알수없음", "temperature": "?"}
         group_name, opts, mood = "구름", ["가볍게 간단히", "든든한 한끼", "디저트/카페"], "실내 중심"
 
-    # 사이드바 카드
+    # 사이드바
     with st.sidebar:
-        st.markdown(
-            f"<div style='background:#fff; border-radius:10px; padding:15px; margin-bottom:15px;'>"
-            f"<h3>📍 현재 위치</h3><p>위도: {user_lat:.4f}, 경도: {user_lon:.4f}</p></div>",
-            unsafe_allow_html=True
-        )
-        st.markdown(
-            f"<div style='background:#fff; border-radius:10px; padding:15px; margin-bottom:15px;'>"
-            f"<h3>🌤️ 현재 날씨</h3><p>{w['description']}, {w['temperature']}°C</p></div>",
-            unsafe_allow_html=True
-        )
-        st.markdown(
-            f"<div style='background:#fff; border-radius:10px; padding:15px;'>"
-            f"<h3>💡 추천 키워드</h3><p>{mood}</p></div>",
-            unsafe_allow_html=True
-        )
+        st.markdown(f"""
+        <div style='background:#fff; border-radius:10px; padding:15px; margin-bottom:15px;'>
+        <h3>📍 현재 위치</h3>
+        <p>위도: {user_lat:.4f}, 경도: {user_lon:.4f}</p>
+        </div>
+        <div style='background:#fff; border-radius:10px; padding:15px; margin-bottom:15px;'>
+        <h3>🌤️ 현재 날씨</h3>
+        <p>{w['description']}, {w['temperature']}°C</p>
+        </div>
+        <div style='background:#fff; border-radius:10px; padding:15px;'>
+        <h3>💡 추천 키워드</h3>
+        <p>{mood}</p>
+        </div>
+        """, unsafe_allow_html=True)
 
     all_df = get_restaurant_within_500m_from_supabase(user_lat, user_lon)
 
-    # Page 1
+    # ─────────────── Page 1 ───────────────
     if st.session_state.page == "page1":
         st.header("현재 날씨에 추천 드리는 카테고리입니다.")
         choice = st.radio("카테고리를 선택하세요 👇", options=opts)
@@ -305,14 +306,73 @@ def main():
         st.subheader(f"‘{choice}’ 카테고리에 해당되는 반경 500M 내 음식점 (거리순)")
 
         if not filtered_df.empty:
-            df = prettify_dataframe(filtered_df)[["이름", "거리"]]
-            df = df.reset_index(drop=True)
+            df = prettify_dataframe(filtered_df).copy()
+
+            # ✅ 이름에 하이퍼링크 추가
+            if "map_link" in filtered_df.columns:
+                df["이름"] = df.apply(
+                    lambda row: (
+                        f"<a href='{row['map_link']}' target='_blank' class='link-name'>{row['이름']}</a>"
+                        if pd.notna(row.get("map_link")) else row["이름"]
+                    ),
+                    axis=1
+                )
+
+            df = df[["이름", "거리"]].reset_index(drop=True)
             df.index = df.index + 1
-            st.dataframe(df, use_container_width=True, height=500)
+
+            # ✅ CSS 스타일
+            st.markdown("""
+            <style>
+            .scroll-table {
+                max-height: 500px;
+                overflow-y: auto;
+                border: 1px solid #ddd;
+                border-radius: 10px;
+                margin-top: 15px;
+                box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+            }
+            .scroll-table table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 15px;
+            }
+            .scroll-table th {
+                position: sticky;
+                top: 0;
+                background: #f9f9f9;
+                border-bottom: 2px solid #ddd;
+                text-align: left;
+                padding: 10px;
+                font-weight: 600;
+            }
+            .scroll-table td {
+                border-bottom: 1px solid #eee;
+                padding: 10px;
+            }
+            .scroll-table tr:hover td {
+                background-color: #f5f8ff;
+            }
+            .link-name {
+                color: #0366d6;
+                text-decoration: none;
+                font-weight: 500;
+            }
+            .link-name:hover {
+                text-decoration: underline;
+                color: #004aad;
+            }
+            </style>
+            """, unsafe_allow_html=True)
+
+            # ✅ HTML 렌더링
+            st.markdown(
+                f"<div class='scroll-table'>{df.to_html(escape=False, index=True, justify='left')}</div>",
+                unsafe_allow_html=True
+            )
         else:
             st.warning("해당 카테고리 음식점이 없습니다.")
 
-        # 버튼: 오른쪽 정렬
         col1, col2 = st.columns([9, 1])
         with col2:
             if st.button("➡ 다음"):
@@ -320,7 +380,7 @@ def main():
                 st.session_state.page = "page2"
                 st.rerun()
 
-    # Page 2
+    # ─────────────── Page 2 ───────────────
     elif st.session_state.page == "page2":
         choice = st.session_state.get("choice")
         st.header(f"‘{choice}’ 카테고리 결과")
@@ -383,7 +443,7 @@ def main():
                 st.session_state.page = "page3"
                 st.rerun()
 
-    # Page 3
+    # ─────────────── Page 3 ───────────────
     elif st.session_state.page == "page3":
         st.header("최종 선택")
         st.success("맛집 선택이 완료되었습니다! 🎉")
