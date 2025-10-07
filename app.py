@@ -346,35 +346,6 @@ def main():
     
             st.dataframe(df[["이름", "거리"]], use_container_width=True, height=420)
     
-            if not df.empty:
-                st.markdown("#### 🔗 열고 싶은 식당을 선택하세요 👇")
-                clicked_row = st.selectbox("식당 선택", df["이름"])
-                link = df.loc[df["이름"] == clicked_row, "map_link"].iloc[0]
-    
-                # 🌐 민트블루 버튼 (새 탭에서 열림)
-                st.markdown(
-                    f"""
-                    <a href="{link}" target="_blank" style="text-decoration:none;">
-                      <button style="
-                        background-color:#B7E0F2;
-                        color:#004C74;
-                        border:none;
-                        padding:10px 18px;
-                        border-radius:8px;
-                        cursor:pointer;
-                        font-size:16px;
-                        font-weight:600;
-                        box-shadow:0 2px 4px rgba(0,0,0,0.1);
-                        transition:0.2s;"
-                        onmouseover="this.style.backgroundColor='#A1D3EB'"
-                        onmouseout="this.style.backgroundColor='#B7E0F2'">
-                        🌐 링크 열기
-                      </button>
-                    </a>
-                    """,
-                    unsafe_allow_html=True,
-                )
-    
         # ───────────────────────────────
         # 별점순 탭
         # ───────────────────────────────
@@ -385,34 +356,6 @@ def main():
                 df.index = df.index + 1
                 st.dataframe(df[["이름", "별점"]], use_container_width=True, height=420)
     
-                if not df.empty:
-                    st.markdown("#### 🔗 열고 싶은 식당을 선택하세요 👇")
-                    clicked_row = st.selectbox("식당 선택 (별점순)", df["이름"])
-                    link = df.loc[df["이름"] == clicked_row, "map_link"].iloc[0]
-    
-                    st.markdown(
-                        f"""
-                        <a href="{link}" target="_blank" style="text-decoration:none;">
-                          <button style="
-                            background-color:#B7E0F2;
-                            color:#004C74;
-                            border:none;
-                            padding:10px 18px;
-                            border-radius:8px;
-                            cursor:pointer;
-                            font-size:16px;
-                            font-weight:600;
-                            box-shadow:0 2px 4px rgba(0,0,0,0.1);
-                            transition:0.2s;"
-                            onmouseover="this.style.backgroundColor='#A1D3EB'"
-                            onmouseout="this.style.backgroundColor='#B7E0F2'">
-                            🌐 링크 열기
-                          </button>
-                        </a>
-                        """,
-                        unsafe_allow_html=True,
-                    )
-    
         # ───────────────────────────────
         # 리뷰순 탭
         # ───────────────────────────────
@@ -422,34 +365,6 @@ def main():
                 df = df.reset_index(drop=True)
                 df.index = df.index + 1
                 st.dataframe(df[["이름", "리뷰 수"]], use_container_width=True, height=420)
-    
-                if not df.empty:
-                    st.markdown("#### 🔗 열고 싶은 식당을 선택하세요 👇")
-                    clicked_row = st.selectbox("식당 선택 (리뷰순)", df["이름"])
-                    link = df.loc[df["이름"] == clicked_row, "map_link"].iloc[0]
-    
-                    st.markdown(
-                        f"""
-                        <a href="{link}" target="_blank" style="text-decoration:none;">
-                          <button style="
-                            background-color:#B7E0F2;
-                            color:#004C74;
-                            border:none;
-                            padding:10px 18px;
-                            border-radius:8px;
-                            cursor:pointer;
-                            font-size:16px;
-                            font-weight:600;
-                            box-shadow:0 2px 4px rgba(0,0,0,0.1);
-                            transition:0.2s;"
-                            onmouseover="this.style.backgroundColor='#A1D3EB'"
-                            onmouseout="this.style.backgroundColor='#B7E0F2'">
-                            🌐 링크 열기
-                          </button>
-                        </a>
-                        """,
-                        unsafe_allow_html=True,
-                    )
     
         # ───────────────────────────────
         # 지도 탭
