@@ -26,7 +26,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# 중앙 정렬 (Streamlit 기본 block-container 수정)
+# 중앙 정렬
 st.markdown("""
     <style>
     .block-container {
@@ -65,7 +65,6 @@ def norm_cat(name: str) -> str:
     return CATEGORY_ALIAS.get(str(name).strip(), str(name).strip())
 
 
-# ✅ 안전한 정규식 버전 (모든 환경에서 작동)
 def _normalize_label(s: str) -> str:
     if s is None:
         return ""
@@ -240,7 +239,7 @@ def main():
         w = {"description": "알 수 없음", "temperature": "?"}
         group_name, opts, mood = "구름", ["가볍게 간단히", "든든한 한끼", "디저트/카페"], "실내 중심"
 
-    # ── 사이드바
+    # 사이드바
     with st.sidebar:
         st.markdown(f"""
         <div style='background:#fff; border-radius:10px; padding:15px; margin-bottom:15px;'>
@@ -279,7 +278,6 @@ def main():
             df = df[["이름", "거리"]].reset_index(drop=True)
             df.index = df.index + 1
 
-            # ✅ CSS
             st.markdown("""
             <style>
             .scroll-table {
@@ -341,19 +339,17 @@ def main():
     elif st.session_state.page == "page2":
         choice = st.session_state.get("choice")
         st.header(f"‘{choice}’ 카테고리 결과")
-    
+
         filtered_df = filter_by_category_tf(all_df, choice)
-    
+
         tabs = st.tabs(["거리순", "별점순", "리뷰순", "지도"])
-    
-        # ── 거리순 탭
+
         with tabs[0]:
             df = prettify_dataframe(filtered_df.sort_values("distance_m"))
             df = df.reset_index(drop=True)
             df.index = df.index + 1
             st.dataframe(df[["이름", "거리"]], use_container_width=True)
-    
-        # ── 별점순 탭
+
         with tabs[1]:
             if "rating" in filtered_df.columns:
                 df = prettify_dataframe(filtered_df.sort_values("rating", ascending=False))
@@ -362,8 +358,7 @@ def main():
                 st.dataframe(df[["이름", "별점"]], use_container_width=True)
             else:
                 st.info("별점 정보가 없습니다.")
-    
-        # ── 리뷰순 탭
+
         with tabs[2]:
             if "review_cnt" in filtered_df.columns:
                 df = prettify_dataframe(filtered_df.sort_values("review_cnt", ascending=False))
@@ -372,8 +367,7 @@ def main():
                 st.dataframe(df[["이름", "리뷰 수"]], use_container_width=True)
             else:
                 st.info("리뷰 수 정보가 없습니다.")
-    
-        # ── 지도 탭
+
         with tabs[3]:
             if not filtered_df.empty:
                 df_map = filtered_df.rename(columns={"latitude": "lat", "longitude": "lon"}).copy()
@@ -397,21 +391,21 @@ def main():
                     )
                 )
 
-    # ── 페이지 이동 버튼
-    col1, col2 = st.columns([9, 1])
-    with col1:
-        if st.button("⬅ 이전"):
-            st.session_state.page = "page1"
-            st.rerun()
-    with col2:
-        if st.button("➡ 다음"):
-            st.session_state.page = "page3"
-            st.rerun()
+        col1, col2 = st.columns([9, 1])
+        with col1:
+            if st.button("⬅ 이전"):
+                st.session_state.page = "page1"
+                st.rerun()
+        with col2:
+            if st.button("➡ 다음"):
+                st.session_state.page = "page3"
+                st.rerun()
 
     # ───────────── Page 3 ─────────────
     elif st.session_state.page == "page3":
         st.header("최종 선택")
         st.success("맛집 선택이 완료되었습니다! 🎉")
+
         if st.button("⬅ 다시 선택"):
             st.session_state.page = "page1"
             st.rerun()
@@ -419,5 +413,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
