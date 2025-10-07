@@ -339,7 +339,6 @@ def main():
             st.rerun()
 
 
-
     # ── PAGE 2 ───────────────────
     elif st.session_state.page == "page2":
         choice = st.session_state.get("choice")
