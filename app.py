@@ -47,7 +47,7 @@ CATEGORY_ALIAS = {
     "술 한잔 하기 좋은 날": "술 한잔 하기 좋은날",
     "가족/단체회식": "가족/단체 외식",
     "패스트푸드/배달": "패스트푸드",
-    "헤산물/생선요리": "해산물/생선요리",
+    "헤산물/생선요리": "해산물/생선요리",  # 오타 보정
 }
 
 
@@ -56,12 +56,10 @@ def norm_cat(name: str) -> str:
 
 
 def _normalize_label(s: str) -> str:
-    """오류 수정된 안전한 정규식"""
     if s is None:
         return ""
     s = str(s).lower()
-    # 공백, /, _, (), \, - 모두 제거 (하이픈은 안전하게 이스케이프)
-    return re.sub(r"[\\\s/_()\-]+", "", s)
+    return re.sub(r"[\s/_\-()]+", "", s)
 
 
 def coerce_tf_bool(frame: pd.DataFrame) -> pd.DataFrame:
@@ -92,11 +90,15 @@ def resolve_tf_column(frame: pd.DataFrame, expected_label: str) -> str | None:
     return None
 
 
+# ───────────────────────────────
+# prettify: 컬럼명 + 거리 단위
+# ───────────────────────────────
 def prettify_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     if df is None or df.empty:
         return df
     df = df.copy()
 
+    # 거리 처리
     if "distance_m" in df.columns:
         df["거리"] = pd.to_numeric(df["distance_m"], errors="coerce").apply(
             lambda x: f"{int(x)}m" if pd.notna(x) else ""
@@ -106,6 +108,7 @@ def prettify_dataframe(df: pd.DataFrame) -> pd.DataFrame:
             lambda x: f"{x:.2f}km" if pd.notna(x) else ""
         )
 
+    # 컬럼명 매핑
     rename_map = {
         "name_g": "이름",
         "name": "이름",
@@ -139,19 +142,23 @@ WX_GROUPS = {
 WX_RECO = {
     "클리어": {
         "mood": "야외활동, 기분전환, 걷기 좋은 날",
-        "cats": ["이국적인 음식", "디저트/카페", "술 한잔 하기 좋은 날", "가볍게 간단히", "시원한 한끼", "해산물/생선요리"]
+        "cats": ["이국적인 음식", "디저트/카페", "술 한잔 하기 좋은 날",
+                 "가볍게 간단히", "시원한 한끼", "해산물/생선요리"]
     },
     "구름": {
         "mood": "실내 중심, 편안함, 든든함 추구",
-        "cats": ["든든한 한끼", "뜨끈한 국물", "디저트/카페", "시원한 한끼", "해산물/생선요리"]
+        "cats": ["든든한 한끼", "뜨끈한 국물", "디저트/카페",
+                 "시원한 한끼", "해산물/생선요리"]
     },
     "비": {
         "mood": "외출 불편, 따뜻하거나 자극적인 음식",
-        "cats": ["뜨끈한 국물", "매콤한 음식", "술 한잔 하기 좋은 날", "패스트푸드/배달", "시원한 한끼"]
+        "cats": ["뜨끈한 국물", "매콤한 음식", "술 한잔 하기 좋은 날",
+                 "패스트푸드/배달", "시원한 한끼"]
     },
     "이슬비": {
         "mood": "활동 가능하지만 귀찮음",
-        "cats": ["디저트/카페", "가볍게 간단히", "건강/채식/특수식단", "해산물/생선요리"]
+        "cats": ["디저트/카페", "가볍게 간단히",
+                 "건강/채식/특수식단", "해산물/생선요리"]
     },
     "뇌우": {
         "mood": "외출 최소화, 실내 고정",
@@ -159,7 +166,8 @@ WX_RECO = {
     },
     "눈": {
         "mood": "실내, 감성적, 따뜻함 추구",
-        "cats": ["뜨끈한 국물", "육류구이/고기파티", "가족/단체회식", "디저트/카페", "해산물/생선요리"]
+        "cats": ["뜨끈한 국물", "육류구이/고기파티",
+                 "가족/단체회식", "디저트/카페", "해산물/생선요리"]
     },
     "분위기": {
         "mood": "안개/먼지 등 건강 고려",
@@ -268,7 +276,7 @@ def main():
         w = {"description": "알수없음", "temperature": "?"}
         group_name, opts, mood = "구름", ["가볍게 간단히", "든든한 한끼", "디저트/카페"], "실내 중심"
 
-    # ── 사이드바 ─────────────────
+    # 사이드바 카드
     with st.sidebar:
         st.markdown(
             f"<div style='background:#fff; border-radius:10px; padding:15px; margin-bottom:15px;'>"
@@ -288,64 +296,23 @@ def main():
 
     all_df = get_restaurant_within_500m_from_supabase(user_lat, user_lon)
 
-    # ───────────────────────────────
     # Page 1
-    # ───────────────────────────────
     if st.session_state.page == "page1":
         st.header("현재 날씨에 추천 드리는 카테고리입니다.")
         choice = st.radio("카테고리를 선택하세요 👇", options=opts)
         filtered_df = filter_by_category_tf(all_df, choice)
-    
+
         st.subheader(f"‘{choice}’ 카테고리에 해당되는 반경 500M 내 음식점 (거리순)")
-    
+
         if not filtered_df.empty:
-            # ── Supabase 데이터 정리 ─────────────────
-            df = prettify_dataframe(filtered_df)[["이름", "거리", "map_link"]].copy()
+            df = prettify_dataframe(filtered_df)[["이름", "거리"]]
             df = df.reset_index(drop=True)
             df.index = df.index + 1
-    
-            # ── 표 출력 (Streamlit 기본 스타일 유지) ─────────────────
-            st.dataframe(
-                df[["이름", "거리"]],
-                use_container_width=True,  # 전체 너비 확장
-                height=420,                # 10행 정도 표시
-            )
-    
-            # ── 링크 열기 기능 ─────────────────
-            st.markdown("### 🔗 열고 싶은 식당을 선택하세요 👇")
-            clicked_row = st.selectbox("식당 선택", df["이름"])
-            link = df.loc[df["이름"] == clicked_row, "map_link"].iloc[0]
-    
-            # 🌐 버튼처럼 보이는 링크 (실제 새 탭에서 열림)
-            st.markdown(
-                f"""
-                <div style="margin-top: 10px;">
-                    <a href="{link}" target="_blank" style="text-decoration: none;">
-                        <button style="
-                            background-color: #87CEEB;
-                            color: white;
-                            border: none;
-                            padding: 10px 18px;
-                            border-radius: 8px;
-                            cursor: pointer;
-                            font-size: 16px;
-                            font-weight: 500;
-                            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                            transition: 0.2s;
-                        " onmouseover="this.style.backgroundColor='#5ec2e0'" 
-                          onmouseout="this.style.backgroundColor='#87CEEB'">
-                            🌐 링크 열기
-                        </button>
-                    </a>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-    
+            st.dataframe(df, use_container_width=True, height=500)
         else:
             st.warning("해당 카테고리 음식점이 없습니다.")
-    
-        # ── 페이지 이동 버튼 ─────────────────
+
+        # 버튼: 오른쪽 정렬
         col1, col2 = st.columns([9, 1])
         with col2:
             if st.button("➡ 다음"):
@@ -353,37 +320,83 @@ def main():
                 st.session_state.page = "page2"
                 st.rerun()
 
-
-    # ── PAGE 2 ───────────────────
+    # ───────────────────────────────
+    # Page 2
+    # ───────────────────────────────
     elif st.session_state.page == "page2":
         choice = st.session_state.get("choice")
         st.header(f"‘{choice}’ 카테고리 결과")
-
+    
         filtered_df = filter_by_category_tf(all_df, choice)
         filtered, selected_types = select_and_filter_by_business_type(filtered_df)
-
+    
         tabs = st.tabs(["거리순", "별점순", "리뷰순", "지도"])
-
+    
+        # ───────────────────────────────
+        # 거리순 탭
+        # ───────────────────────────────
         with tabs[0]:
             df = prettify_dataframe(filtered.sort_values("distance_m"))
             df = df.reset_index(drop=True)
             df.index = df.index + 1
-            st.dataframe(df[["이름", "거리"]])
-
+            st.dataframe(df[["이름", "거리"]], use_container_width=True, height=420)
+    
+            if not df.empty:
+                st.markdown("### 🔗 열고 싶은 식당을 선택하세요 👇")
+                clicked_row = st.selectbox("식당 선택", df["이름"])
+                link = df.loc[df["이름"] == clicked_row, "map_link"].iloc[0]
+    
+                # ✅ 선택 즉시 세션에 저장
+                st.session_state.selected_place = clicked_row
+                st.session_state.selected_link = link
+    
+                # 🌐 버튼처럼 보이는 링크 (실제 새 탭에서 열림)
+                st.markdown(
+                    f"""
+                    <a href="{link}" target="_blank" style="text-decoration:none;">
+                        <button style="
+                            background-color:#87CEEB;
+                            color:white;
+                            border:none;
+                            padding:10px 18px;
+                            border-radius:8px;
+                            cursor:pointer;
+                            font-size:16px;
+                            font-weight:500;
+                            box-shadow:0 2px 4px rgba(0,0,0,0.1);
+                            transition:0.2s;
+                        " onmouseover="this.style.backgroundColor='#5ec2e0'" 
+                          onmouseout="this.style.backgroundColor='#87CEEB'">
+                            🌐 링크 열기
+                        </button>
+                    </a>
+                    """,
+                    unsafe_allow_html=True
+                )
+    
+        # ───────────────────────────────
+        # 별점순 탭
+        # ───────────────────────────────
         with tabs[1]:
             if "rating" in filtered.columns:
                 df = prettify_dataframe(filtered.sort_values("rating", ascending=False))
                 df = df.reset_index(drop=True)
                 df.index = df.index + 1
-                st.dataframe(df[["이름", "별점"]])
-
+                st.dataframe(df[["이름", "별점"]], use_container_width=True, height=420)
+    
+        # ───────────────────────────────
+        # 리뷰순 탭
+        # ───────────────────────────────
         with tabs[2]:
             if "review_cnt" in filtered.columns:
                 df = prettify_dataframe(filtered.sort_values("review_cnt", ascending=False))
                 df = df.reset_index(drop=True)
                 df.index = df.index + 1
-                st.dataframe(df[["이름", "리뷰 수"]])
-
+                st.dataframe(df[["이름", "리뷰 수"]], use_container_width=True, height=420)
+    
+        # ───────────────────────────────
+        # 지도 탭
+        # ───────────────────────────────
         with tabs[3]:
             if not filtered.empty:
                 df_map = filtered.rename(columns={"latitude": "lat", "longitude": "lon"}).copy()
@@ -404,7 +417,10 @@ def main():
                         ],
                     )
                 )
-
+    
+        # ───────────────────────────────
+        # 페이지 이동 버튼
+        # ───────────────────────────────
         col1, col2 = st.columns([9, 1])
         with col1:
             if st.button("⬅ 이전"):
@@ -414,15 +430,50 @@ def main():
             if st.button("➡ 다음"):
                 st.session_state.page = "page3"
                 st.rerun()
-
-    # ── PAGE 3 ───────────────────
+    
+    
+    # ───────────────────────────────
+    # Page 3
+    # ───────────────────────────────
     elif st.session_state.page == "page3":
-        st.header("최종 선택")
-        st.success("맛집 선택이 완료되었습니다! 🎉")
-
-        if st.button("⬅ 다시 선택"):
-            st.session_state.page = "page1"
-            st.rerun()
+        st.header("🎉 추천 완료")
+    
+        choice = st.session_state.get("choice")
+        place = st.session_state.get("selected_place")
+        link = st.session_state.get("selected_link")
+    
+        if place:
+            st.markdown(f"### 오늘의 분위기: **{choice}**")
+            st.markdown(f"#### 선택한 식당: 🍜 **{place}**")
+    
+            # 지도 열기(새 탭)
+            st.markdown(
+                f"""
+                <a href="{link}" target="_blank" style="text-decoration:none;">
+                  <button style="
+                    background-color:#87CEEB; color:white; border:none;
+                    padding:10px 18px; border-radius:8px; cursor:pointer;
+                    font-size:16px; font-weight:500; box-shadow:0 2px 4px rgba(0,0,0,0.1);
+                    transition:.2s;" onmouseover="this.style.backgroundColor='#5ec2e0'"
+                    onmouseout="this.style.backgroundColor='#87CEEB'">🌐 지도에서 보기
+                  </button>
+                </a>
+                """,
+                unsafe_allow_html=True
+            )
+        else:
+            st.info("2페이지에서 식당을 선택하면 여기에 표시됩니다.")
+    
+        st.divider()
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("⬅ 다시 보기"):
+                st.session_state.page = "page2"
+                st.rerun()
+        with col2:
+            if st.button("🏠 처음으로"):
+                st.session_state.page = "page1"
+                st.rerun()
 
 
 if __name__ == "__main__":
