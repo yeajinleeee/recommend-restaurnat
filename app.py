@@ -507,17 +507,40 @@ def main():
             df = prettify_dataframe(filtered_df).copy()
             df = df.reset_index(drop=True)
     
-            st.markdown(f"### 오늘의 분위기: **{choice}**")
+            # 오늘의 분위기: 연한 빨강 배경 태그 스타일
+            st.markdown(
+                f"""
+                <div style="margin-bottom:8px;">
+                  <span style="font-weight:600; font-size:22px;">오늘의 분위기:</span>
+                  <span style="
+                      background:#ffeaea;
+                      color:#d9534f;
+                      padding:4px 10px;
+                      border-radius:8px;
+                      margin-left:8px;
+                      font-size:20px;
+                      font-weight:600;
+                      ">
+                      {choice}
+                  </span>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+    
+            # 선택한 업태: 연한 파랑 배경 태그 스타일
             if selected_types:
                 st.markdown(
-                    "🏷️ 선택한 업태: " + " · ".join(
-                        [f"<span style='background:#e8f5ff; padding:3px 8px; border-radius:6px;'>{t}</span>"
+                    "🏷️ <b>선택한 업태:</b> " + " · ".join(
+                        [f"<span style='background:#e8f5ff; padding:3px 8px; border-radius:6px; margin-right:4px;'>{t}</span>"
                          for t in selected_types]),
                     unsafe_allow_html=True,
                 )
     
             st.markdown("#### 최종으로 방문할 식당을 선택하세요 👇")
+            st.markdown("---")
     
+            # 식당 선택
             selected_name = st.selectbox("식당 선택", df["이름"])
             selected_row = df[df["이름"] == selected_name].iloc[0]
     
@@ -534,7 +557,7 @@ def main():
                 info_line("🏠", "주소", selected_row.get("주소"))
             )
     
-            st.markdown("---")
+            # 카드형 정보 출력
             st.markdown(
                 f"""
                 <div style="
