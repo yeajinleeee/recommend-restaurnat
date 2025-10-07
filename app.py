@@ -9,7 +9,7 @@ import pydeck as pdk
 from haversine import haversine
 from typing import List, Tuple
 import re
-import urllib.parse
+import urllib.parse  # ✅ 추가
 
 # ───────────────────────────────
 # 0. 환경 설정
@@ -19,7 +19,7 @@ SUPABASE_URL: str = os.getenv("SUPABASE_URL")
 SUPABASE_KEY: str = os.getenv("SUPABASE_API_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 OPENWEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
-GOOGLE_PLACES_API_KEY = os.getenv("GOOGLE_PLACES_API_KEY")
+GOOGLE_PLACES_API_KEY = os.getenv("GOOGLE_PLACES_API_KEY")  # ✅ 추가
 
 st.set_page_config(page_title="날씨 + 위치 기반 음식점 추천", page_icon="🍜", layout="wide")
 st.title("날씨 + 위치 기반 음식점 추천 🌨️")
@@ -108,7 +108,7 @@ def prettify_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 # ───────────────────────────────
-# Google Places API (대표 사진)
+# 3+. Google Places API (대표 이미지)
 # ───────────────────────────────
 def get_place_photo_url(place_name: str) -> str | None:
     try:
@@ -119,44 +119,19 @@ def get_place_photo_url(place_name: str) -> str | None:
             f"&key={GOOGLE_PLACES_API_KEY}"
         )
         res = requests.get(search_url, timeout=10)
-        res.raise_for_status()
         data = res.json()
-        if not data.get("candidates"): return None
+        if not data.get("candidates"):
+            return None
         photos = data["candidates"][0].get("photos")
-        if not photos: return None
+        if not photos:
+            return None
         ref = photos[0]["photo_reference"]
         return f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photo_reference={ref}&key={GOOGLE_PLACES_API_KEY}"
-    except: return None
+    except:
+        return None
 
 # ───────────────────────────────
-# hover 미리보기
-# ───────────────────────────────
-def add_hover_place_photo(df: pd.DataFrame) -> pd.DataFrame:
-    if "이름" not in df.columns:
-        return df
-    df = df.copy()
-    def make_hover_html(name):
-        img_url = get_place_photo_url(name)
-        if not img_url: return name
-        return f"""
-        <div style='position:relative; display:inline-block;'>
-            <span style='cursor:pointer; color:#0073e6; text-decoration:underline;'>{name}</span>
-            <div style='visibility:hidden; width:400px; background:white; border:1px solid #ccc; border-radius:8px;
-                        position:absolute; z-index:10; top:25px; left:0;'>
-                <img src='{img_url}' width='400' height='200' style='border-radius:8px;'/>
-            </div>
-        </div>
-        <script>
-        const p=document.currentScript.previousElementSibling;
-        p.onmouseover=()=>p.querySelector('div').style.visibility='visible';
-        p.onmouseout =()=>p.querySelector('div').style.visibility='hidden';
-        </script>
-        """
-    df["이름"] = df["이름"].apply(make_hover_html)
-    return df
-
-# ───────────────────────────────
-# Page3 카드 표시 함수
+# 3++. 카드형 표시 함수 (+요인)
 # ───────────────────────────────
 def show_restaurant_card(info: dict):
     if not info:
@@ -177,47 +152,97 @@ def show_restaurant_card(info: dict):
     st.markdown(html, unsafe_allow_html=True)
 
 # ───────────────────────────────
-# 2페이지 선택 → 3페이지 연결 함수
+# (이하 날씨, API, 필터링, main 등 기존 동일)
 # ───────────────────────────────
-def clickable_table(df):
-    html = "<table style='width:100%;border-collapse:collapse;'>"
-    html += "<tr><th>이름</th><th>거리</th></tr>"
-    for _, row in df.iterrows():
-        onclick = f"window.parent.postMessage('{row.to_json()}', '*')"
-        html += f"<tr onclick=\"{onclick}\" style='cursor:pointer;'><td>{row['이름']}</td><td>{row['거리']}</td></tr>"
-    html += "</table>"
-    st.components.v1.html(html, height=500, scrolling=True)
+# ... 기존 WX_GROUPS, WX_RECO, fetch_weather, get_restaurant_within_500m_from_supabase, filter_by_category_tf 등 동일 ...
 
 # ───────────────────────────────
-# 이하 기존 main 구조 (요약)
+# 5. Main (+요인만 추가)
 # ───────────────────────────────
 def main():
-    if "page" not in st.session_state: st.session_state.page = "page1"
-    if "selected_restaurant" not in st.session_state: st.session_state.selected_restaurant = None
+    if "page" not in st.session_state:
+        st.session_state.page = "page1"
+    if "selected_restaurant" not in st.session_state:
+        st.session_state.selected_restaurant = None
 
-    # (위치, 날씨, 데이터 로드 등 기존 동일)
-    user_lat, user_lon = 37.5665,126.9780
-    all_df = pd.DataFrame()  # supabase 연동 생략 (기존 동일)
+    # 기존 내용 전부 유지 (위치, 날씨, supabase 데이터 로드 포함)
+    user_lat, user_lon = get_user_location()
+    try:
+        w = fetch_weather(user_lat, user_lon)
+        group_name = weather_group_from_id(w["id"])
+        opts, mood = recommended_categories_from_group(group_name)
+    except:
+        w = {"description": "알수없음", "temperature": "?"}
+        group_name, opts, mood = "구름", ["가볍게 간단히", "든든한 한끼", "디저트/카페"], "실내 중심"
 
-    # PAGE1 ~ PAGE3 구조
-    if st.session_state.page == "page2":
-        st.header("가게 선택 (클릭하면 이동)")
-        df = pd.DataFrame([{"이름":"백반집","거리":"200m","주소":"서울시 마포구","지도링크":"https://maps.google.com","별점":4.5,"리뷰 수":12}])
-        clickable_table(df)
-        # message 이벤트 리스너 연결
-        st.session_state.selected_restaurant = df.iloc[0].to_dict()
-        if st.button("➡ 선택 완료"): 
-            st.session_state.page="page3"; st.rerun()
+    with st.sidebar:
+        st.markdown(f"<div style='background:#fff;border-radius:10px;padding:15px;margin-bottom:15px;'>"
+                    f"<h3>📍 현재 위치</h3><p>위도: {user_lat:.4f}, 경도: {user_lon:.4f}</p></div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='background:#fff;border-radius:10px;padding:15px;margin-bottom:15px;'>"
+                    f"<h3>🌤️ 현재 날씨</h3><p>{w['description']}, {w['temperature']}°C</p></div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='background:#fff;border-radius:10px;padding:15px;'>"
+                    f"<h3>💡 추천 키워드</h3><p>{mood}</p></div>", unsafe_allow_html=True)
 
-    elif st.session_state.page=="page3":
-        st.header("🍽️ 선택된 가게 정보")
-        show_restaurant_card(st.session_state.selected_restaurant)
+    all_df = get_restaurant_within_500m_from_supabase(user_lat, user_lon)
+
+    # ───────────── Page1 ─────────────
+    if st.session_state.page == "page1":
+        st.header("현재 날씨에 추천 드리는 카테고리입니다.")
+        choice = st.radio("카테고리를 선택하세요 👇", options=opts)
+        filtered_df = filter_by_category_tf(all_df, choice)
+
+        st.subheader(f"‘{choice}’ 카테고리에 해당되는 반경 500M 내 음식점 (거리순)")
+        if not filtered_df.empty:
+            df = prettify_dataframe(filtered_df)[["이름","거리","주소","별점","리뷰 수","지도링크"]]
+            df = df.reset_index(drop=True)
+            df.index = df.index + 1
+            st.dataframe(df, use_container_width=True, height=500)
+        else:
+            st.warning("해당 카테고리 음식점이 없습니다.")
+
+        col1, col2 = st.columns([9,1])
+        with col2:
+            if st.button("➡ 다음"):
+                st.session_state.choice = choice
+                st.session_state.page = "page2"
+                st.rerun()
+
+    # ───────────── Page2 (+요인) ─────────────
+    elif st.session_state.page == "page2":
+        choice = st.session_state.get("choice")
+        st.header(f"‘{choice}’ 카테고리 결과")
+        filtered_df = filter_by_category_tf(all_df, choice)
+
+        if not filtered_df.empty:
+            df = prettify_dataframe(filtered_df)[["이름","거리","주소","별점","리뷰 수","지도링크"]]
+            df = df.reset_index(drop=True)
+            df.index = df.index + 1
+
+            # ✅ 이름 클릭 시 page3으로 이동
+            for i, row in df.iterrows():
+                if st.button(row["이름"], key=f"btn_{i}"):
+                    st.session_state.selected_restaurant = row.to_dict()
+                    st.session_state.page = "page3"
+                    st.rerun()
+
+        col1, col2 = st.columns([9,1])
+        with col1:
+            if st.button("⬅ 이전"):
+                st.session_state.page = "page1"
+                st.rerun()
+
+    # ───────────── Page3 (+요인) ─────────────
+    elif st.session_state.page == "page3":
+        st.header("🍽️ 선택한 가게 정보")
+        if st.session_state.selected_restaurant:
+            show_restaurant_card(st.session_state.selected_restaurant)
+        else:
+            st.warning("선택된 가게가 없습니다.")
+
         if st.button("⬅ 다시 선택"):
-            st.session_state.page="page2"; st.rerun()
-    else:
-        st.header("1페이지: 카테고리 선택 (예시)")
-        if st.button("➡ 다음"):
-            st.session_state.page="page2"; st.rerun()
+            st.session_state.page = "page2"
+            st.rerun()
 
-if __name__=="__main__":
+if __name__ == "__main__":
     main()
+
