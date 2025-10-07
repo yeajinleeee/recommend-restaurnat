@@ -9,6 +9,7 @@ import pydeck as pdk
 from haversine import haversine
 from typing import List, Tuple
 import re
+import urllib.parse  # (Places API용)
 
 # ───────────────────────────────
 # 0. 환경 설정
@@ -18,6 +19,7 @@ SUPABASE_URL: str = os.getenv("SUPABASE_URL")
 SUPABASE_KEY: str = os.getenv("SUPABASE_API_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 OPENWEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
+GOOGLE_PLACES_API_KEY = os.getenv("GOOGLE_PLACES_API_KEY")  # ✅ 추가 (Google Places API 키)
 
 st.set_page_config(page_title="날씨 + 위치 기반 음식점 추천", page_icon="🍜", layout="wide")
 st.title("날씨 + 위치 기반 음식점 추천 🌨️")
@@ -33,13 +35,12 @@ def get_user_location():
         return seoul_lat, seoul_lon
     return float(loc["latitude"]), float(loc["longitude"])
 
-# 카테고리 이름 표준화
 CATEGORY_ALIAS = {
     "시원한 한끼": "시원한 음식",
     "술 한잔 하기 좋은 날": "술 한잔 하기 좋은날",
     "가족/단체회식": "가족/단체 외식",
     "패스트푸드/배달": "패스트푸드",
-    "헤산물/생선요리": "해산물/생선요리",  # 오타 보정
+    "헤산물/생선요리": "해산물/생선요리",
 }
 def norm_cat(name: str) -> str:
     return CATEGORY_ALIAS.get(str(name).strip(), str(name).strip())
@@ -74,14 +75,12 @@ def resolve_tf_column(frame: pd.DataFrame, expected_label: str) -> str | None:
     return None
 
 # ───────────────────────────────
-# prettify: 컬럼명 + 거리 단위
+# prettify
 # ───────────────────────────────
 def prettify_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     if df is None or df.empty:
         return df
     df = df.copy()
-
-    # 거리 처리
     if "distance_m" in df.columns:
         df["거리"] = pd.to_numeric(df["distance_m"], errors="coerce").apply(
             lambda x: f"{int(x)}m" if pd.notna(x) else ""
@@ -91,7 +90,6 @@ def prettify_dataframe(df: pd.DataFrame) -> pd.DataFrame:
             lambda x: f"{x:.2f}km" if pd.notna(x) else ""
         )
 
-    # 컬럼명 매핑
     rename_map = {
         "name_g": "이름",
         "name": "이름",
@@ -106,6 +104,69 @@ def prettify_dataframe(df: pd.DataFrame) -> pd.DataFrame:
         "지번주소": "주소",
     }
     df.rename(columns=rename_map, inplace=True)
+    return df
+
+# ───────────────────────────────
+# 3+. Google Places API (대표 사진 불러오기)
+# ───────────────────────────────
+def get_place_photo_url(place_name: str) -> str | None:
+    try:
+        query = urllib.parse.quote(place_name)
+        search_url = (
+            f"https://maps.googleapis.com/maps/api/place/findplacefromtext/json"
+            f"?input={query}&inputtype=textquery&fields=photos,place_id"
+            f"&key={GOOGLE_PLACES_API_KEY}"
+        )
+        res = requests.get(search_url, timeout=10)
+        res.raise_for_status()
+        data = res.json()
+
+        if not data.get("candidates"):
+            return None
+
+        photos = data["candidates"][0].get("photos")
+        if not photos:
+            return None
+
+        photo_ref = photos[0]["photo_reference"]
+        photo_url = (
+            f"https://maps.googleapis.com/maps/api/place/photo"
+            f"?maxwidth=400&photo_reference={photo_ref}&key={GOOGLE_PLACES_API_KEY}"
+        )
+        return photo_url
+    except Exception as e:
+        print("사진 로드 실패:", e)
+        return None
+
+# ───────────────────────────────
+# 3++. 이름 hover 시 대표사진 미리보기
+# ───────────────────────────────
+def add_hover_place_photo(df: pd.DataFrame) -> pd.DataFrame:
+    if "이름" not in df.columns:
+        return df
+
+    df = df.copy()
+
+    def make_hover_html(name):
+        img_url = get_place_photo_url(name)
+        if not img_url:
+            return name
+        return f"""
+        <div style='position:relative; display:inline-block;'>
+            <span style='cursor:pointer; color:#0073e6; text-decoration:underline;'>{name}</span>
+            <div style='visibility:hidden; width:400px; background:white; border:1px solid #ccc; border-radius:8px;
+                        position:absolute; z-index:10; top:25px; left:0;'>
+                <img src='{img_url}' width='400' height='200' style='border-radius:8px;'/>
+            </div>
+        </div>
+        <script>
+        const parent = document.currentScript.previousElementSibling;
+        parent.onmouseover = () => parent.querySelector('div').style.visibility = 'visible';
+        parent.onmouseout  = () => parent.querySelector('div').style.visibility = 'hidden';
+        </script>
+        """
+
+    df["이름"] = df["이름"].apply(make_hover_html)
     return df
 
 # ───────────────────────────────
@@ -224,7 +285,6 @@ def main():
         w = {"description":"알수없음","temperature":"?"}
         group_name, opts, mood = "구름", ["가볍게 간단히","든든한 한끼","디저트/카페"], "실내 중심"
 
-    # 사이드바 카드
     with st.sidebar:
         st.markdown(f"<div style='background:#fff; border-radius:10px; padding:15px; margin-bottom:15px;'>"
                     f"<h3>📍 현재 위치</h3><p>위도: {user_lat:.4f}, 경도: {user_lon:.4f}</p></div>", unsafe_allow_html=True)
@@ -247,11 +307,14 @@ def main():
             df = prettify_dataframe(filtered_df)[["이름","거리"]]
             df = df.reset_index(drop=True)
             df.index = df.index + 1
-            st.dataframe(df, use_container_width=True, height=500)
+
+            # ✅ hover 이미지 미리보기 추가
+            df = add_hover_place_photo(df)
+            st.markdown(df.to_html(escape=False), unsafe_allow_html=True)
+
         else:
             st.warning("해당 카테고리 음식점이 없습니다.")
 
-        # 버튼: 오른쪽 정렬 (이전 없음)
         col1, col2 = st.columns([9,1])
         with col2:
             if st.button("➡ 다음"):
@@ -271,17 +334,20 @@ def main():
         with tabs[0]:
             df = prettify_dataframe(filtered.sort_values("distance_m"))
             df = df.reset_index(drop=True); df.index = df.index + 1
-            st.dataframe(df[["이름","거리"]])
+            df = add_hover_place_photo(df)
+            st.markdown(df.to_html(escape=False), unsafe_allow_html=True)
         with tabs[1]:
             if "rating" in filtered.columns:
                 df = prettify_dataframe(filtered.sort_values("rating", ascending=False))
                 df = df.reset_index(drop=True); df.index = df.index + 1
-                st.dataframe(df[["이름","별점"]])
+                df = add_hover_place_photo(df)
+                st.markdown(df.to_html(escape=False), unsafe_allow_html=True)
         with tabs[2]:
             if "review_cnt" in filtered.columns:
                 df = prettify_dataframe(filtered.sort_values("review_cnt", ascending=False))
                 df = df.reset_index(drop=True); df.index = df.index + 1
-                st.dataframe(df[["이름","리뷰 수"]])
+                df = add_hover_place_photo(df)
+                st.markdown(df.to_html(escape=False), unsafe_allow_html=True)
         with tabs[3]:
             if not filtered.empty:
                 df_map = filtered.rename(columns={"latitude":"lat","longitude":"lon"}).copy()
@@ -314,4 +380,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
