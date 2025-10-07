@@ -341,21 +341,72 @@ def main():
     elif st.session_state.page == "page2":
         choice = st.session_state.get("choice")
         st.header(f"‘{choice}’ 카테고리 결과")
-
+    
         filtered_df = filter_by_category_tf(all_df, choice)
-        filtered_df = filtered_df.sort_values("distance_m")
-        df = prettify_dataframe(filtered_df)
-        st.dataframe(df[["이름", "거리"]], use_container_width=True)
+    
+        tabs = st.tabs(["거리순", "별점순", "리뷰순", "지도"])
+    
+        # ── 거리순 탭
+        with tabs[0]:
+            df = prettify_dataframe(filtered_df.sort_values("distance_m"))
+            df = df.reset_index(drop=True)
+            df.index = df.index + 1
+            st.dataframe(df[["이름", "거리"]], use_container_width=True)
+    
+        # ── 별점순 탭
+        with tabs[1]:
+            if "rating" in filtered_df.columns:
+                df = prettify_dataframe(filtered_df.sort_values("rating", ascending=False))
+                df = df.reset_index(drop=True)
+                df.index = df.index + 1
+                st.dataframe(df[["이름", "별점"]], use_container_width=True)
+            else:
+                st.info("별점 정보가 없습니다.")
+    
+        # ── 리뷰순 탭
+        with tabs[2]:
+            if "review_cnt" in filtered_df.columns:
+                df = prettify_dataframe(filtered_df.sort_values("review_cnt", ascending=False))
+                df = df.reset_index(drop=True)
+                df.index = df.index + 1
+                st.dataframe(df[["이름", "리뷰 수"]], use_container_width=True)
+            else:
+                st.info("리뷰 수 정보가 없습니다.")
+    
+        # ── 지도 탭
+        with tabs[3]:
+            if not filtered_df.empty:
+                df_map = filtered_df.rename(columns={"latitude": "lat", "longitude": "lon"}).copy()
+                st.pydeck_chart(
+                    pdk.Deck(
+                        map_provider="maplibre",
+                        map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
+                        initial_view_state=pdk.ViewState(
+                            latitude=user_lat, longitude=user_lon, zoom=15
+                        ),
+                        layers=[
+                            pdk.Layer(
+                                "ScatterplotLayer",
+                                data=df_map,
+                                get_position="[lon, lat]",
+                                get_radius=60,
+                                get_fill_color=[255, 0, 0, 160],
+                                pickable=True,
+                            )
+                        ],
+                    )
+                )
 
-        col1, col2 = st.columns([9, 1])
-        with col1:
-            if st.button("⬅ 이전"):
-                st.session_state.page = "page1"
-                st.rerun()
-        with col2:
-            if st.button("➡ 다음"):
-                st.session_state.page = "page3"
-                st.rerun()
+    # ── 페이지 이동 버튼
+    col1, col2 = st.columns([9, 1])
+    with col1:
+        if st.button("⬅ 이전"):
+            st.session_state.page = "page1"
+            st.rerun()
+    with col2:
+        if st.button("➡ 다음"):
+            st.session_state.page = "page3"
+            st.rerun()
 
     # ───────────── Page 3 ─────────────
     elif st.session_state.page == "page3":
