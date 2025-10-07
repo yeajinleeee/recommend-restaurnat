@@ -305,14 +305,41 @@ def main():
         st.subheader(f"‘{choice}’ 카테고리에 해당되는 반경 500M 내 음식점 (거리순)")
 
         if not filtered_df.empty:
-            df = prettify_dataframe(filtered_df)[["이름", "거리"]]
+            df = prettify_dataframe(filtered_df)[["이름", "거리", "map_link"]] if "map_link" in filtered_df.columns else prettify_dataframe(filtered_df)
             df = df.reset_index(drop=True)
             df.index = df.index + 1
-            st.dataframe(df, use_container_width=True, height=500)
+
+            # HTML 테이블 생성 (지도 열기 버튼)
+            table_html = """
+            <table style='width:100%; border-collapse:collapse;'>
+                <thead style='background-color:#f7f7f7;'>
+                    <tr>
+                        <th style='text-align:center; padding:8px;'>번호</th>
+                        <th style='text-align:center; padding:8px;'>이름</th>
+                        <th style='text-align:center; padding:8px;'>거리</th>
+                        <th style='text-align:center; padding:8px;'>지도</th>
+                    </tr>
+                </thead>
+                <tbody>
+            """
+            for i, row in df.iterrows():
+                name = row["이름"]
+                dist = row.get("거리", "")
+                link = row.get("map_link", "")
+                link_button = f"<a href='{link}' target='_blank' style='color:white; background-color:#4CAF50; padding:5px 10px; border-radius:6px; text-decoration:none;'>열기 🔗</a>" if link else ""
+                table_html += f"""
+                    <tr>
+                        <td style='text-align:center; padding:8px;'>{i}</td>
+                        <td style='padding:8px;'>{name}</td>
+                        <td style='text-align:center; padding:8px;'>{dist}</td>
+                        <td style='text-align:center; padding:8px;'>{link_button}</td>
+                    </tr>
+                """
+            table_html += "</tbody></table>"
+            st.markdown(table_html, unsafe_allow_html=True)
         else:
             st.warning("해당 카테고리 음식점이 없습니다.")
 
-        # 버튼: 오른쪽 정렬
         col1, col2 = st.columns([9, 1])
         with col2:
             if st.button("➡ 다음"):
@@ -395,4 +422,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
