@@ -25,7 +25,6 @@ st.set_page_config(
     page_icon="🍜",
     layout="wide"
 )
-
 st.title("날씨 + 위치 기반 음식점 추천 🌨️")
 
 # ───────────────────────────────
@@ -35,7 +34,7 @@ seoul_lat, seoul_lon = 37.5665, 126.9780
 
 def get_user_location():
     try:
-        loc = streamlit_geolocation()  # key 제거, 버전 호환
+        loc = streamlit_geolocation()
         if not loc or loc.get("latitude") is None or loc.get("longitude") is None:
             return seoul_lat, seoul_lon
         return float(loc["latitude"]), float(loc["longitude"])
@@ -94,22 +93,11 @@ def prettify_dataframe(df: pd.DataFrame) -> pd.DataFrame:
         df["거리"] = pd.to_numeric(df["distance_m"], errors="coerce").apply(
             lambda x: f"{int(x)}m" if pd.notna(x) else ""
         )
-    elif "distance_km" in df.columns:
-        df["거리"] = pd.to_numeric(df["distance_km"], errors="coerce").apply(
-            lambda x: f"{x:.2f}km" if pd.notna(x) else ""
-        )
     rename_map = {
-        "name_g": "이름",
-        "name": "이름",
-        "place_name": "이름",
-        "store_name": "이름",
-        "상호명": "이름",
-        "category": "업태",
-        "rating": "별점",
-        "review_cnt": "리뷰 수",
-        "address": "주소",
-        "도로명주소": "주소",
-        "지번주소": "주소",
+        "name_g": "이름", "name": "이름", "place_name": "이름",
+        "store_name": "이름", "상호명": "이름",
+        "category": "업태", "rating": "별점", "review_cnt": "리뷰 수",
+        "address": "주소", "도로명주소": "주소", "지번주소": "주소",
     }
     df.rename(columns=rename_map, inplace=True)
     return df
@@ -126,7 +114,6 @@ WX_GROUPS = {
     "눈": [600, 601, 602, 611, 612, 613, 615, 616, 620, 621, 622],
     "분위기": [701, 711, 721, 731, 741, 751, 761, 762],
 }
-
 WX_RECO = {
     "클리어": {"mood": "야외활동, 기분전환, 걷기 좋은 날",
                "cats": ["이국적인 음식", "디저트/카페", "술 한잔 하기 좋은 날",
@@ -148,45 +135,34 @@ WX_RECO = {
     "분위기": {"mood": "안개/먼지 등 건강 고려",
                "cats": ["건강/채식/특수식단", "뜨끈한 국물", "패스트푸드/배달"]},
 }
-
 def weather_group_from_id(weather_id: int) -> str:
-    for group_name, codes in WX_GROUPS.items():
+    for g, codes in WX_GROUPS.items():
         if int(weather_id) in codes:
-            return group_name
+            return g
     return "구름"
-
-def recommended_categories_from_group(group_name: str, top_k: int | None = None):
-    cats = [norm_cat(c) for c in WX_RECO[group_name]["cats"]]
-    mood = WX_RECO[group_name]["mood"]
+def recommended_categories_from_group(g: str, top_k: int | None = None):
+    cats = [norm_cat(c) for c in WX_RECO[g]["cats"]]
+    mood = WX_RECO[g]["mood"]
     return (cats, mood) if top_k is None else (cats[:top_k], mood)
 
 # ───────────────────────────────
 # 3. API
 # ───────────────────────────────
-def fetch_weather(weather_lat: float, weather_lon: float) -> dict:
-    url = (f"https://api.openweathermap.org/data/2.5/weather?"
-           f"lat={weather_lat}&lon={weather_lon}"
-           f"&appid={OPENWEATHER_API_KEY}&units=metric&lang=kr")
+def fetch_weather(lat: float, lon: float) -> dict:
+    url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={OPENWEATHER_API_KEY}&units=metric&lang=kr"
     res = requests.get(url, timeout=10)
     res.raise_for_status()
-    data = res.json()
-    return {"id": data["weather"][0]["id"],
-            "description": data["weather"][0]["description"],
-            "temperature": data["main"]["temp"]}
+    d = res.json()
+    return {"id": d["weather"][0]["id"], "description": d["weather"][0]["description"], "temperature": d["main"]["temp"]}
 
 def get_restaurant_within_500m_from_supabase(lat: float, lon: float):
     try:
-        response = supabase.rpc("get_restaurant_within_500m",
-                                {"user_lat": lat, "user_lng": lon}).execute()
-        if not response or response.data is None or len(response.data) == 0:
+        res = supabase.rpc("get_restaurant_within_500m", {"user_lat": lat, "user_lng": lon}).execute()
+        if not res or res.data is None or len(res.data) == 0:
             return pd.DataFrame()
-        df = pd.DataFrame(response.data)
+        df = pd.DataFrame(res.data)
         if "latitude" in df.columns and "longitude" in df.columns:
-            df["distance_m"] = df.apply(
-                lambda row: haversine((lat, lon),
-                                      (row["latitude"], row["longitude"])) * 1000,
-                axis=1
-            ).round(0).astype(int)
+            df["distance_m"] = df.apply(lambda r: haversine((lat, lon), (r["latitude"], r["longitude"])) * 1000, axis=1).round(0).astype(int)
         return df
     except Exception as e:
         st.error(f"음식점 데이터를 불러오지 못했습니다: {e}")
@@ -224,14 +200,11 @@ def main():
         w = {"description": "알수없음", "temperature": "?"}
         group_name, opts, mood = "구름", ["가볍게 간단히", "든든한 한끼", "디저트/카페"], "실내 중심"
 
-    # 사이드바
     with st.sidebar:
-        st.markdown(f"<div style='background:#fff; border-radius:10px; padding:15px; margin-bottom:15px;'>"
-                    f"<h3>📍 현재 위치</h3><p>위도: {user_lat:.4f}, 경도: {user_lon:.4f}</p></div>", unsafe_allow_html=True)
-        st.markdown(f"<div style='background:#fff; border-radius:10px; padding:15px; margin-bottom:15px;'>"
-                    f"<h3>🌤️ 현재 날씨</h3><p>{w['description']}, {w['temperature']}°C</p></div>", unsafe_allow_html=True)
         st.markdown(f"<div style='background:#fff; border-radius:10px; padding:15px;'>"
-                    f"<h3>💡 추천 키워드</h3><p>{mood}</p></div>", unsafe_allow_html=True)
+                    f"<h3>📍 현재 위치</h3><p>{user_lat:.4f}, {user_lon:.4f}</p>"
+                    f"<h3>🌤️ 날씨</h3><p>{w['description']}, {w['temperature']}°C</p>"
+                    f"<h3>💡 키워드</h3><p>{mood}</p></div>", unsafe_allow_html=True)
 
     all_df = get_restaurant_within_500m_from_supabase(user_lat, user_lon)
 
@@ -241,137 +214,102 @@ def main():
         choice = st.radio("카테고리를 선택하세요 👇", options=opts)
         filtered_df = filter_by_category_tf(all_df, choice)
 
-        st.subheader(f"‘{choice}’ 카테고리에 해당되는 반경 500M 내 음식점 (거리순)")
-
         if not filtered_df.empty:
             df = prettify_dataframe(filtered_df)
             if "map_link" not in df.columns:
                 df["map_link"] = ""
-
             df = df.reset_index(drop=True)
             df.index = df.index + 1
 
             rows = ""
             for i, row in df.iterrows():
-                name = row["이름"]
-                dist = row.get("거리", "")
+                name, dist = row["이름"], row.get("거리", "")
                 link = row.get("map_link", "")
-                link_button = (
-                    f"<a href='{link}' target='_blank' "
-                    f"style='color:black; background-color:white; border:1px solid black; "
-                    f"padding:5px 10px; border-radius:6px; text-decoration:none;'>열기 🔗</a>"
-                    if link else ""
-                )
-                rows += (
-                    f"<tr>"
-                    f"<td style='text-align:center; padding:8px;'>{i}</td>"
-                    f"<td style='padding:8px;'>{name}</td>"
-                    f"<td style='text-align:center; padding:8px;'>{dist}</td>"
-                    f"<td style='text-align:center; padding:8px;'>{link_button}</td>"
-                    f"</tr>"
-                )
-
-            table_html = (
-                "<table style='width:100%; border-collapse:collapse;'>"
-                "<thead style='background-color:#f7f7f7;'>"
-                "<tr>"
-                "<th style='text-align:center; padding:8px;'>번호</th>"
-                "<th style='text-align:center; padding:8px;'>이름</th>"
-                "<th style='text-align:center; padding:8px;'>거리</th>"
-                "<th style='text-align:center; padding:8px;'>지도</th>"
-                "</tr>"
-                "</thead>"
-                f"<tbody>{rows}</tbody>"
-                "</table>"
-            )
-
-            scrollable_html = f"""
-            <div style='max-height:500px; overflow-y:auto; border:1px solid #ddd; border-radius:8px; padding:5px;'>
-            {table_html}
-            </div>
-            """
-            st.markdown(scrollable_html, unsafe_allow_html=True)
+                rows += f"<tr><td style='text-align:center'>{i}</td><td>{name}</td><td style='text-align:center'>{dist}</td><td style='text-align:center'><a href='{link}' target='_blank' style='color:black; border:1px solid black; padding:5px 10px; border-radius:6px; text-decoration:none;'>열기 🔗</a></td></tr>"
+            table_html = f"<table style='width:100%; border-collapse:collapse;'><thead><tr><th>번호</th><th>이름</th><th>거리</th><th>링크</th></tr></thead><tbody>{rows}</tbody></table>"
+            st.markdown(f"<div style='max-height:500px; overflow-y:auto'>{table_html}</div>", unsafe_allow_html=True)
         else:
             st.warning("해당 카테고리 음식점이 없습니다.")
 
-        col1, col2 = st.columns([9, 1])
-        with col2:
-            if st.button("➡ 다음"):
-                st.session_state.choice = choice
-                st.session_state.page = "page2"
-                st.rerun()
+        if st.button("➡ 다음"):
+            st.session_state.choice = choice
+            st.session_state.page = "page2"
+            st.rerun()
+
     # PAGE 2
     elif st.session_state.page == "page2":
         choice = st.session_state.get("choice")
         st.header(f"‘{choice}’ 카테고리 결과")
-
         filtered_df = filter_by_category_tf(all_df, choice)
-        filtered, selected_types = select_and_filter_by_business_type(filtered_df)
 
-        tabs = st.tabs(["거리순", "별점순", "리뷰순", "지도"])
-
-        with tabs[0]:
-            df = prettify_dataframe(filtered.sort_values("distance_m"))
+        if not filtered_df.empty:
+            df = prettify_dataframe(filtered_df)
             df = df.reset_index(drop=True)
             df.index = df.index + 1
-            st.dataframe(df[["이름", "거리"]])
 
-        with tabs[1]:
-            if "rating" in filtered.columns:
-                df = prettify_dataframe(filtered.sort_values("rating", ascending=False))
-                df = df.reset_index(drop=True)
-                df.index = df.index + 1
-                st.dataframe(df[["이름", "별점"]])
+            rows = ""
+            for i, row in df.iterrows():
+                name, dist = row["이름"], row.get("거리", "")
+                link = row.get("map_link", "")
+                rows += f"""
+                <tr>
+                    <td style='text-align:center'>{i}</td>
+                    <td style='padding:8px;'>
+                        <a href='?store={name}' style='color:blue; text-decoration:none; font-weight:bold;'>{name}</a>
+                    </td>
+                    <td style='text-align:center'>{dist}</td>
+                    <td style='text-align:center'>
+                        <a href='{link}' target='_blank' style='color:black; border:1px solid black; padding:4px 8px; border-radius:6px; text-decoration:none;'>링크 🔗</a>
+                    </td>
+                </tr>
+                """
+            table_html = f"<table style='width:100%; border-collapse:collapse;'><thead><tr><th>번호</th><th>이름</th><th>거리</th><th>링크</th></tr></thead><tbody>{rows}</tbody></table>"
+            st.markdown(f"<div style='max-height:500px; overflow-y:auto'>{table_html}</div>", unsafe_allow_html=True)
 
-        with tabs[2]:
-            if "review_cnt" in filtered.columns:
-                df = prettify_dataframe(filtered.sort_values("review_cnt", ascending=False))
-                df = df.reset_index(drop=True)
-                df.index = df.index + 1
-                st.dataframe(df[["이름", "리뷰 수"]])
-
-        with tabs[3]:
-            if not filtered.empty:
-                df_map = filtered.rename(columns={"latitude": "lat", "longitude": "lon"}).copy()
-                st.pydeck_chart(
-                    pdk.Deck(
-                        map_provider="maplibre",
-                        map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
-                        initial_view_state=pdk.ViewState(
-                            latitude=user_lat, longitude=user_lon, zoom=15
-                        ),
-                        layers=[
-                            pdk.Layer(
-                                "ScatterplotLayer",
-                                data=df_map,
-                                get_position="[lon, lat]",
-                                get_radius=60,
-                                get_fill_color=[255, 0, 0, 160],
-                                pickable=True,
-                            )
-                        ],
-                    )
-                )
-
-        col1, col2 = st.columns([9, 1])
-        with col1:
-            if st.button("⬅ 이전"):
-                st.session_state.page = "page1"
-                st.rerun()
-        with col2:
-            if st.button("➡ 다음"):
+            params = st.experimental_get_query_params()
+            store = params.get("store", [None])[0]
+            if store:
+                st.session_state.selected_store = store
                 st.session_state.page = "page3"
+                st.experimental_set_query_params()  # URL 파라미터 초기화
                 st.rerun()
 
-    # PAGE 3
-    elif st.session_state.page == "page3":
-        st.header("최종 선택")
-        st.success("맛집 선택이 완료되었습니다! 🎉")
-
-        if st.button("⬅ 다시 선택"):
+        if st.button("⬅ 이전"):
             st.session_state.page = "page1"
             st.rerun()
 
+    # PAGE 3
+    elif st.session_state.page == "page3":
+        st.header("🍽️ 선택한 음식점 정보")
+
+        store_name = st.session_state.get("selected_store")
+        if not store_name:
+            st.warning("선택된 음식점이 없습니다.")
+        else:
+            row = all_df[all_df["name"] == store_name].iloc[0]
+            name = row.get("name", "")
+            address = row.get("address", "")
+            rating = row.get("rating", "정보 없음")
+            review_cnt = row.get("review_cnt", "정보 없음")
+            dist = row.get("distance_m", "")
+            link = row.get("map_link", "")
+
+            st.markdown(f"""
+            <div style='border:1px solid #ddd; border-radius:15px; padding:20px; background-color:#fff;
+                        box-shadow:0 4px 10px rgba(0,0,0,0.1); max-width:700px;'>
+                <h2 style='margin-bottom:10px; color:#222;'>{name}</h2>
+                <p><b>📍 주소:</b> {address}</p>
+                <p><b>📏 거리:</b> {dist}m</p>
+                <p><b>⭐ 별점:</b> {rating}</p>
+                <p><b>🗨️ 리뷰 수:</b> {review_cnt}</p>
+                <p><a href='{link}' target='_blank' 
+                      style='color:black; border:1px solid black; padding:5px 10px; border-radius:6px; text-decoration:none;'>지도에서 보기 🔗</a></p>
+            </div>
+            """, unsafe_allow_html=True)
+
+        if st.button("⬅ 다시 선택"):
+            st.session_state.page = "page2"
+            st.rerun()
 
 if __name__ == "__main__":
     main()
