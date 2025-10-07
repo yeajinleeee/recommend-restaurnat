@@ -35,7 +35,7 @@ seoul_lat, seoul_lon = 37.5665, 126.9780
 
 
 def get_user_location():
-    loc = streamlit_geolocation()
+    loc = streamlit_geolocation(key="user_location")  # ✅ key 지정 (중복 오류 방지)
     if not loc or loc.get("latitude") is None or loc.get("longitude") is None:
         return seoul_lat, seoul_lon
     return float(loc["latitude"]), float(loc["longitude"])
@@ -283,7 +283,7 @@ def main():
                 link = row.get("map_link", "")
                 link_button = (
                     f"<a href='{link}' target='_blank' "
-                    f"style='color:white; background-color:#4CAF50; "
+                    f"style='color:black; background-color:white; border:1px solid black; "
                     f"padding:5px 10px; border-radius:6px; text-decoration:none;'>열기 🔗</a>"
                     if link else ""
                 )
@@ -309,7 +309,13 @@ def main():
                 f"<tbody>{rows}</tbody>"
                 "</table>"
             )
-            st.markdown(table_html, unsafe_allow_html=True)
+
+            scrollable_html = f"""
+            <div style='max-height:500px; overflow-y:auto; border:1px solid #ddd; border-radius:8px; padding:5px;'>
+            {table_html}
+            </div>
+            """
+            st.markdown(scrollable_html, unsafe_allow_html=True)
         else:
             st.warning("해당 카테고리 음식점이 없습니다.")
 
@@ -395,7 +401,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 
 if __name__ == "__main__":
     main()
