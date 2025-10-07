@@ -332,7 +332,7 @@ def main():
     
         # 업태 선택 UI 및 데이터 필터
         filtered, selected_types = select_and_filter_by_business_type(filtered_df)
-        st.session_state.selected_types = selected_types  #  3 페이지 전달용
+        st.session_state.selected_types = selected_types  # ✅ 3 페이지 전달용
     
         tabs = st.tabs(["거리순", "별점순", "리뷰순", "지도"])
     
@@ -351,23 +351,23 @@ def main():
                 clicked_row = st.selectbox("식당 선택", df["이름"])
                 link = df.loc[df["이름"] == clicked_row, "map_link"].iloc[0]
     
-                # 하늘색 링크 버튼 (새 탭에서 열림)
+                # 🌐 민트블루 버튼 (새 탭에서 열림)
                 st.markdown(
                     f"""
                     <a href="{link}" target="_blank" style="text-decoration:none;">
                       <button style="
-                        background-color:#87CEEB;
-                        color:white;
+                        background-color:#B7E0F2;
+                        color:#004C74;
                         border:none;
                         padding:10px 18px;
                         border-radius:8px;
                         cursor:pointer;
                         font-size:16px;
-                        font-weight:500;
+                        font-weight:600;
                         box-shadow:0 2px 4px rgba(0,0,0,0.1);
                         transition:0.2s;"
-                        onmouseover="this.style.backgroundColor='#5ec2e0'" 
-                        onmouseout="this.style.backgroundColor='#87CEEB'">
+                        onmouseover="this.style.backgroundColor='#A1D3EB'"
+                        onmouseout="this.style.backgroundColor='#B7E0F2'">
                         🌐 링크 열기
                       </button>
                     </a>
@@ -389,22 +389,23 @@ def main():
                     st.markdown("### 🔗 열고 싶은 식당을 선택하세요 👇")
                     clicked_row = st.selectbox("식당 선택 (별점순)", df["이름"])
                     link = df.loc[df["이름"] == clicked_row, "map_link"].iloc[0]
+    
                     st.markdown(
                         f"""
                         <a href="{link}" target="_blank" style="text-decoration:none;">
                           <button style="
-                            background-color:#87CEEB;
-                            color:white;
+                            background-color:#B7E0F2;
+                            color:#004C74;
                             border:none;
                             padding:10px 18px;
                             border-radius:8px;
                             cursor:pointer;
                             font-size:16px;
-                            font-weight:500;
+                            font-weight:600;
                             box-shadow:0 2px 4px rgba(0,0,0,0.1);
                             transition:0.2s;"
-                            onmouseover="this.style.backgroundColor='#5ec2e0'" 
-                            onmouseout="this.style.backgroundColor='#87CEEB'">
+                            onmouseover="this.style.backgroundColor='#A1D3EB'"
+                            onmouseout="this.style.backgroundColor='#B7E0F2'">
                             🌐 링크 열기
                           </button>
                         </a>
@@ -426,22 +427,23 @@ def main():
                     st.markdown("### 🔗 열고 싶은 식당을 선택하세요 👇")
                     clicked_row = st.selectbox("식당 선택 (리뷰순)", df["이름"])
                     link = df.loc[df["이름"] == clicked_row, "map_link"].iloc[0]
+    
                     st.markdown(
                         f"""
                         <a href="{link}" target="_blank" style="text-decoration:none;">
                           <button style="
-                            background-color:#87CEEB;
-                            color:white;
+                            background-color:#B7E0F2;
+                            color:#004C74;
                             border:none;
                             padding:10px 18px;
                             border-radius:8px;
                             cursor:pointer;
                             font-size:16px;
-                            font-weight:500;
+                            font-weight:600;
                             box-shadow:0 2px 4px rgba(0,0,0,0.1);
                             transition:0.2s;"
-                            onmouseover="this.style.backgroundColor='#5ec2e0'" 
-                            onmouseout="this.style.backgroundColor='#87CEEB'">
+                            onmouseover="this.style.backgroundColor='#A1D3EB'"
+                            onmouseout="this.style.backgroundColor='#B7E0F2'">
                             🌐 링크 열기
                           </button>
                         </a>
@@ -485,8 +487,7 @@ def main():
             if st.button("➡ 다음"):
                 st.session_state.page = "page3"
                 st.rerun()
-    
-    
+        
     # ───────────────────────────────
     # Page 3 : 최종 선택 + 상세 카드
     # ───────────────────────────────
@@ -572,19 +573,19 @@ def main():
                     {info_html}
                     <a href="{selected_row['map_link']}" target="_blank" style="text-decoration:none;">
                       <button style="
-                        background-color:#87CEEB;
-                        color:white;
+                        background-color:#B7E0F2;
+                        color:#004C74;
                         border:none;
                         padding:10px 18px;
                         border-radius:8px;
                         cursor:pointer;
                         font-size:16px;
-                        font-weight:500;
+                        font-weight:600;
                         box-shadow:0 2px 4px rgba(0,0,0,0.1);
                         transition:0.2s;
                         margin-top:10px;"
-                        onmouseover="this.style.backgroundColor='#5ec2e0'"
-                        onmouseout="this.style.backgroundColor='#87CEEB'">
+                        onmouseover="this.style.backgroundColor='#A1D3EB'"
+                        onmouseout="this.style.backgroundColor='#B7E0F2'">
                         🌐 지도에서 보기
                       </button>
                     </a>
