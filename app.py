@@ -511,14 +511,14 @@ def main():
             st.markdown(
                 f"""
                 <div style="margin-bottom:8px;">
-                  <span style="font-weight:600; font-size:22px;">오늘의 분위기:</span>
+                  <span style="font-weight:600; font-size:18px;">오늘의 분위기:</span>
                   <span style="
                       background:#ffeaea;
                       color:#d9534f;
                       padding:4px 10px;
                       border-radius:8px;
                       margin-left:8px;
-                      font-size:20px;
+                      font-size:16px;
                       font-weight:600;
                       ">
                       {choice}
@@ -536,9 +536,9 @@ def main():
                          for t in selected_types]),
                     unsafe_allow_html=True,
                 )
-    
-            st.markdown("#### 최종으로 방문할 식당을 선택하세요 👇")
+                
             st.markdown("---")
+            st.markdown("#### 최종으로 방문할 식당을 선택하세요 👇")
     
             # 식당 선택
             selected_name = st.selectbox("식당 선택", df["이름"])
