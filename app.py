@@ -288,7 +288,7 @@ def main():
 
     all_df = get_restaurant_within_500m_from_supabase(user_lat, user_lon)
 
-    # Page 1
+   # Page 1
     if st.session_state.page == "page1":
         st.header("현재 날씨에 추천 드리는 카테고리입니다.")
         choice = st.radio("카테고리를 선택하세요 👇", options=opts)
@@ -301,49 +301,90 @@ def main():
             df = df.reset_index(drop=True)
             df.index = df.index + 1
     
-            # 열기 버튼 HTML 생성
+            # 버튼 HTML 생성
             df["열기"] = [
                 f"<a href='{link}' target='_blank' style='text-decoration:none;'>"
-                f"<button style='padding:5px 12px; border:none; background-color:#87CEEB; "
-                f"color:white; border-radius:6px; cursor:pointer;'>열기</button>"
-                f"</a>"
-                if pd.notna(link) and str(link).startswith("http") else ""
+                f"<button class='open-btn'>열기</button></a>"
+                if pd.notna(link) and str(link).startswith('http') else ''
                 for link in df["map_link"]
             ]
     
             df_display = df[["이름", "거리", "열기"]]
     
-            # CSS: 표 전체 너비 & 세로 스크롤 지정
-            st.markdown(
-                """
-                <style>
-                .scroll-table {
-                    width: 100%;
-                    overflow-y: auto;
-                    height: 420px; /* 스크롤 높이 (약 10행) */
-                    border: 1px solid #ddd;
-                    border-radius: 10px;
-                    background-color: white;
-                }
-                table {
-                    width: 100%;
-                    border-collapse: collapse;
-                    font-size: 16px;
-                }
-                th, td {
-                    border-bottom: 1px solid #eee;
-                    text-align: left;
-                    padding: 10px 15px;
-                }
-                th {
-                    background-color: #f8f9fa;
-                }
-                </style>
-                """,
-                unsafe_allow_html=True,
-            )
+            # 💅 세련된 CSS 스타일
+            st.markdown("""
+            <style>
+            .scroll-table {
+                width: 100%;
+                overflow-y: auto;
+                height: 420px;
+                background-color: #ffffff;
+                border-radius: 14px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+                border: 1px solid #e8e8e8;
+            }
     
-            # HTML 테이블 출력 (버튼 포함)
+            table {
+                width: 100%;
+                border-collapse: separate;
+                border-spacing: 0;
+                font-size: 15px;
+                color: #333;
+                border-radius: 12px;
+            }
+    
+            th {
+                background-color: #f9fafb;
+                color: #444;
+                font-weight: 600;
+                text-align: left;
+                padding: 12px 16px;
+                border-bottom: 1px solid #eaeaea;
+            }
+    
+            td {
+                padding: 12px 16px;
+                border-bottom: 1px solid #f1f1f1;
+                vertical-align: middle;
+            }
+    
+            tr:hover {
+                background-color: #f5faff;
+                box-shadow: inset 0 0 6px rgba(0,0,0,0.03);
+            }
+    
+            /* 하늘색 열기 버튼 */
+            .open-btn {
+                background-color: #87CEEB;
+                color: white;
+                border: none;
+                padding: 6px 12px;
+                border-radius: 6px;
+                font-size: 14px;
+                cursor: pointer;
+                transition: all 0.2s ease;
+            }
+    
+            .open-btn:hover {
+                background-color: #5ec2e0;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+    
+            /* 스크롤바 꾸미기 */
+            .scroll-table::-webkit-scrollbar {
+                width: 8px;
+            }
+            .scroll-table::-webkit-scrollbar-thumb {
+                background-color: #c2e1ef;
+                border-radius: 4px;
+            }
+            .scroll-table::-webkit-scrollbar-thumb:hover {
+                background-color: #87CEEB;
+            }
+            </style>
+            """, unsafe_allow_html=True)
+    
+            # HTML 테이블 출력
             html_table = df_display.to_html(escape=False, index=True)
             st.markdown(f"<div class='scroll-table'>{html_table}</div>", unsafe_allow_html=True)
     
@@ -356,6 +397,7 @@ def main():
                 st.session_state.choice = choice
                 st.session_state.page = "page2"
                 st.rerun()
+
 
 
     # ── PAGE 2 ───────────────────
