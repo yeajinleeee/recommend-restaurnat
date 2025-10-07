@@ -332,7 +332,7 @@ def main():
     
         # 업태 선택 UI 및 데이터 필터
         filtered, selected_types = select_and_filter_by_business_type(filtered_df)
-        st.session_state.selected_types = selected_types  # ✅ 3 페이지 전달용
+        st.session_state.selected_types = selected_types  #  3 페이지 전달용
     
         tabs = st.tabs(["거리순", "별점순", "리뷰순", "지도"])
     
@@ -351,7 +351,7 @@ def main():
                 clicked_row = st.selectbox("식당 선택", df["이름"])
                 link = df.loc[df["이름"] == clicked_row, "map_link"].iloc[0]
     
-                # 🌐 하늘색 링크 버튼 (새 탭에서 열림)
+                # 하늘색 링크 버튼 (새 탭에서 열림)
                 st.markdown(
                     f"""
                     <a href="{link}" target="_blank" style="text-decoration:none;">
@@ -491,12 +491,12 @@ def main():
     # Page 3 : 최종 선택 + 상세 카드
     # ───────────────────────────────
     elif st.session_state.page == "page3":
-        st.header("🎯 최종 선택")
+        st.header("최종 선택")
     
         choice = st.session_state.get("choice")
         filtered_df = filter_by_category_tf(all_df, choice)
     
-        # ✅ 2페이지에서 선택한 업태 반영
+        # 2페이지에서 선택한 업태 반영
         selected_types = st.session_state.get("selected_types", [])
         if selected_types:
             filtered_df = filtered_df[filtered_df["category"].isin(selected_types)]
@@ -531,7 +531,7 @@ def main():
             # 선택한 업태: 연한 파랑 배경 태그 스타일
             if selected_types:
                 st.markdown(
-                    "🏷️ <b>선택한 업태:</b> " + " · ".join(
+                    "<b>선택한 업태:</b> " + " · ".join(
                         [f"<span style='background:#e8f5ff; padding:3px 8px; border-radius:6px; margin-right:4px;'>{t}</span>"
                          for t in selected_types]),
                     unsafe_allow_html=True,
