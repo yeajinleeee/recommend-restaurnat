@@ -33,12 +33,14 @@ st.title("날씨 + 위치 기반 음식점 추천 🌨️")
 # ───────────────────────────────
 seoul_lat, seoul_lon = 37.5665, 126.9780
 
-
 def get_user_location():
-    loc = streamlit_geolocation(key="user_location")  # ✅ key 지정 (중복 오류 방지)
-    if not loc or loc.get("latitude") is None or loc.get("longitude") is None:
+    try:
+        loc = streamlit_geolocation()  # key 제거, 버전 호환
+        if not loc or loc.get("latitude") is None or loc.get("longitude") is None:
+            return seoul_lat, seoul_lon
+        return float(loc["latitude"]), float(loc["longitude"])
+    except Exception:
         return seoul_lat, seoul_lon
-    return float(loc["latitude"]), float(loc["longitude"])
 
 
 CATEGORY_ALIAS = {
@@ -49,17 +51,14 @@ CATEGORY_ALIAS = {
     "헤산물/생선요리": "해산물/생선요리",
 }
 
-
 def norm_cat(name: str) -> str:
     return CATEGORY_ALIAS.get(str(name).strip(), str(name).strip())
-
 
 def _normalize_label(s: str) -> str:
     if s is None:
         return ""
     s = str(s).lower()
     return re.sub(r"[\s/_\-()]+", "", s)
-
 
 def coerce_tf_bool(frame: pd.DataFrame) -> pd.DataFrame:
     for col in frame.columns:
@@ -72,7 +71,6 @@ def coerce_tf_bool(frame: pd.DataFrame) -> pd.DataFrame:
                     "TRUE": True, "FALSE": False, "1": True, "0": False
                 }).fillna(False)
     return frame
-
 
 def resolve_tf_column(frame: pd.DataFrame, expected_label: str) -> str | None:
     expected = norm_cat(expected_label)
@@ -87,7 +85,6 @@ def resolve_tf_column(frame: pd.DataFrame, expected_label: str) -> str | None:
         if want in key:
             return col
     return None
-
 
 def prettify_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     if df is None or df.empty:
@@ -116,7 +113,6 @@ def prettify_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     }
     df.rename(columns=rename_map, inplace=True)
     return df
-
 
 # ───────────────────────────────
 # 2. 날씨 그룹 & 추천 카테고리
@@ -153,19 +149,16 @@ WX_RECO = {
                "cats": ["건강/채식/특수식단", "뜨끈한 국물", "패스트푸드/배달"]},
 }
 
-
 def weather_group_from_id(weather_id: int) -> str:
     for group_name, codes in WX_GROUPS.items():
         if int(weather_id) in codes:
             return group_name
     return "구름"
 
-
 def recommended_categories_from_group(group_name: str, top_k: int | None = None):
     cats = [norm_cat(c) for c in WX_RECO[group_name]["cats"]]
     mood = WX_RECO[group_name]["mood"]
     return (cats, mood) if top_k is None else (cats[:top_k], mood)
-
 
 # ───────────────────────────────
 # 3. API
@@ -180,7 +173,6 @@ def fetch_weather(weather_lat: float, weather_lon: float) -> dict:
     return {"id": data["weather"][0]["id"],
             "description": data["weather"][0]["description"],
             "temperature": data["main"]["temp"]}
-
 
 def get_restaurant_within_500m_from_supabase(lat: float, lon: float):
     try:
@@ -200,7 +192,6 @@ def get_restaurant_within_500m_from_supabase(lat: float, lon: float):
         st.error(f"음식점 데이터를 불러오지 못했습니다: {e}")
         return pd.DataFrame()
 
-
 # ───────────────────────────────
 # 4. 필터링
 # ───────────────────────────────
@@ -215,17 +206,6 @@ def filter_by_category_tf(frame: pd.DataFrame, theme: str) -> pd.DataFrame:
     if "distance_m" in out.columns:
         out = out.sort_values("distance_m")
     return out
-
-
-def select_and_filter_by_business_type(frame: pd.DataFrame) -> Tuple[pd.DataFrame, List[str]]:
-    if frame.empty or "category" not in frame.columns:
-        return frame, []
-    cats_all = (frame["category"].dropna().astype(str).str.strip()
-                .replace("", pd.NA).dropna().unique().tolist())
-    selected = st.multiselect("업태를 선택하세요", options=cats_all, default=[])
-    filtered = frame[frame["category"].isin(selected)] if selected else frame
-    return filtered, selected
-
 
 # ───────────────────────────────
 # 5. Main
@@ -244,19 +224,14 @@ def main():
         w = {"description": "알수없음", "temperature": "?"}
         group_name, opts, mood = "구름", ["가볍게 간단히", "든든한 한끼", "디저트/카페"], "실내 중심"
 
+    # 사이드바
     with st.sidebar:
-        st.markdown(
-            f"<div style='background:#fff; border-radius:10px; padding:15px; margin-bottom:15px;'>"
-            f"<h3>📍 현재 위치</h3><p>위도: {user_lat:.4f}, 경도: {user_lon:.4f}</p></div>",
-            unsafe_allow_html=True)
-        st.markdown(
-            f"<div style='background:#fff; border-radius:10px; padding:15px; margin-bottom:15px;'>"
-            f"<h3>🌤️ 현재 날씨</h3><p>{w['description']}, {w['temperature']}°C</p></div>",
-            unsafe_allow_html=True)
-        st.markdown(
-            f"<div style='background:#fff; border-radius:10px; padding:15px;'>"
-            f"<h3>💡 추천 키워드</h3><p>{mood}</p></div>",
-            unsafe_allow_html=True)
+        st.markdown(f"<div style='background:#fff; border-radius:10px; padding:15px; margin-bottom:15px;'>"
+                    f"<h3>📍 현재 위치</h3><p>위도: {user_lat:.4f}, 경도: {user_lon:.4f}</p></div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='background:#fff; border-radius:10px; padding:15px; margin-bottom:15px;'>"
+                    f"<h3>🌤️ 현재 날씨</h3><p>{w['description']}, {w['temperature']}°C</p></div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='background:#fff; border-radius:10px; padding:15px;'>"
+                    f"<h3>💡 추천 키워드</h3><p>{mood}</p></div>", unsafe_allow_html=True)
 
     all_df = get_restaurant_within_500m_from_supabase(user_lat, user_lon)
 
@@ -325,7 +300,6 @@ def main():
                 st.session_state.choice = choice
                 st.session_state.page = "page2"
                 st.rerun()
-
     # PAGE 2
     elif st.session_state.page == "page2":
         choice = st.session_state.get("choice")
