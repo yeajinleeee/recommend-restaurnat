@@ -320,7 +320,7 @@ def main():
                 st.session_state.page = "page2"
                 st.rerun()
 
-   # ───────────────────────────────
+    # ───────────────────────────────
     # Page 2 : 업태 선택 + 탐색 + 링크 보기
     # ───────────────────────────────
     elif st.session_state.page == "page2":
@@ -332,7 +332,7 @@ def main():
     
         # 업태 선택 UI 및 데이터 필터
         filtered, selected_types = select_and_filter_by_business_type(filtered_df)
-        st.session_state.selected_types = selected_types  # ✅ 3 페이지 전달용
+        st.session_state.selected_types = selected_types  #  3 페이지 전달용
     
         tabs = st.tabs(["거리순", "별점순", "리뷰순", "지도"])
     
@@ -347,7 +347,7 @@ def main():
             st.dataframe(df[["이름", "거리"]], use_container_width=True, height=420)
     
             if not df.empty:
-                st.markdown("### 🔗 열고 싶은 식당을 선택하세요 👇")
+                st.markdown("#### 🔗 열고 싶은 식당을 선택하세요 👇")
                 clicked_row = st.selectbox("식당 선택", df["이름"])
                 link = df.loc[df["이름"] == clicked_row, "map_link"].iloc[0]
     
@@ -386,7 +386,7 @@ def main():
                 st.dataframe(df[["이름", "별점"]], use_container_width=True, height=420)
     
                 if not df.empty:
-                    st.markdown("### 🔗 열고 싶은 식당을 선택하세요 👇")
+                    st.markdown("#### 🔗 열고 싶은 식당을 선택하세요 👇")
                     clicked_row = st.selectbox("식당 선택 (별점순)", df["이름"])
                     link = df.loc[df["이름"] == clicked_row, "map_link"].iloc[0]
     
@@ -424,7 +424,7 @@ def main():
                 st.dataframe(df[["이름", "리뷰 수"]], use_container_width=True, height=420)
     
                 if not df.empty:
-                    st.markdown("### 🔗 열고 싶은 식당을 선택하세요 👇")
+                    st.markdown("#### 🔗 열고 싶은 식당을 선택하세요 👇")
                     clicked_row = st.selectbox("식당 선택 (리뷰순)", df["이름"])
                     link = df.loc[df["이름"] == clicked_row, "map_link"].iloc[0]
     
@@ -593,6 +593,9 @@ def main():
                 """,
                 unsafe_allow_html=True,
             )
+            
+        # ✅ 버튼 아래 한 줄 띄우기
+        st.markdown("<br>", unsafe_allow_html=True)
     
         # ───────────────────────────────
         # 페이지 이동 버튼
