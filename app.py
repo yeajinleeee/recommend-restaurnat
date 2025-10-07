@@ -321,14 +321,18 @@ def main():
                 st.rerun()
 
    # ───────────────────────────────
-    # Page 2 (탐색 + 링크 보기)
+    # Page 2 : 업태 선택 + 탐색 + 링크 보기
     # ───────────────────────────────
     elif st.session_state.page == "page2":
         choice = st.session_state.get("choice")
         st.header(f"‘{choice}’ 카테고리 결과")
     
+        # 날씨 카테고리 필터링
         filtered_df = filter_by_category_tf(all_df, choice)
+    
+        # 업태 선택 UI 및 데이터 필터
         filtered, selected_types = select_and_filter_by_business_type(filtered_df)
+        st.session_state.selected_types = selected_types  # ✅ 3 페이지 전달용
     
         tabs = st.tabs(["거리순", "별점순", "리뷰순", "지도"])
     
@@ -351,24 +355,24 @@ def main():
                 st.markdown(
                     f"""
                     <a href="{link}" target="_blank" style="text-decoration:none;">
-                        <button style="
-                            background-color:#87CEEB;
-                            color:white;
-                            border:none;
-                            padding:10px 18px;
-                            border-radius:8px;
-                            cursor:pointer;
-                            font-size:16px;
-                            font-weight:500;
-                            box-shadow:0 2px 4px rgba(0,0,0,0.1);
-                            transition:0.2s;
-                        " onmouseover="this.style.backgroundColor='#5ec2e0'" 
-                          onmouseout="this.style.backgroundColor='#87CEEB'">
-                            🌐 링크 열기
-                        </button>
+                      <button style="
+                        background-color:#87CEEB;
+                        color:white;
+                        border:none;
+                        padding:10px 18px;
+                        border-radius:8px;
+                        cursor:pointer;
+                        font-size:16px;
+                        font-weight:500;
+                        box-shadow:0 2px 4px rgba(0,0,0,0.1);
+                        transition:0.2s;"
+                        onmouseover="this.style.backgroundColor='#5ec2e0'" 
+                        onmouseout="this.style.backgroundColor='#87CEEB'">
+                        🌐 링크 열기
+                      </button>
                     </a>
                     """,
-                    unsafe_allow_html=True
+                    unsafe_allow_html=True,
                 )
     
         # ───────────────────────────────
@@ -388,24 +392,24 @@ def main():
                     st.markdown(
                         f"""
                         <a href="{link}" target="_blank" style="text-decoration:none;">
-                            <button style="
-                                background-color:#87CEEB;
-                                color:white;
-                                border:none;
-                                padding:10px 18px;
-                                border-radius:8px;
-                                cursor:pointer;
-                                font-size:16px;
-                                font-weight:500;
-                                box-shadow:0 2px 4px rgba(0,0,0,0.1);
-                                transition:0.2s;
-                            " onmouseover="this.style.backgroundColor='#5ec2e0'" 
-                              onmouseout="this.style.backgroundColor='#87CEEB'">
-                                🌐 링크 열기
-                            </button>
+                          <button style="
+                            background-color:#87CEEB;
+                            color:white;
+                            border:none;
+                            padding:10px 18px;
+                            border-radius:8px;
+                            cursor:pointer;
+                            font-size:16px;
+                            font-weight:500;
+                            box-shadow:0 2px 4px rgba(0,0,0,0.1);
+                            transition:0.2s;"
+                            onmouseover="this.style.backgroundColor='#5ec2e0'" 
+                            onmouseout="this.style.backgroundColor='#87CEEB'">
+                            🌐 링크 열기
+                          </button>
                         </a>
                         """,
-                        unsafe_allow_html=True
+                        unsafe_allow_html=True,
                     )
     
         # ───────────────────────────────
@@ -425,24 +429,24 @@ def main():
                     st.markdown(
                         f"""
                         <a href="{link}" target="_blank" style="text-decoration:none;">
-                            <button style="
-                                background-color:#87CEEB;
-                                color:white;
-                                border:none;
-                                padding:10px 18px;
-                                border-radius:8px;
-                                cursor:pointer;
-                                font-size:16px;
-                                font-weight:500;
-                                box-shadow:0 2px 4px rgba(0,0,0,0.1);
-                                transition:0.2s;
-                            " onmouseover="this.style.backgroundColor='#5ec2e0'" 
-                              onmouseout="this.style.backgroundColor='#87CEEB'">
-                                🌐 링크 열기
-                            </button>
+                          <button style="
+                            background-color:#87CEEB;
+                            color:white;
+                            border:none;
+                            padding:10px 18px;
+                            border-radius:8px;
+                            cursor:pointer;
+                            font-size:16px;
+                            font-weight:500;
+                            box-shadow:0 2px 4px rgba(0,0,0,0.1);
+                            transition:0.2s;"
+                            onmouseover="this.style.backgroundColor='#5ec2e0'" 
+                            onmouseout="this.style.backgroundColor='#87CEEB'">
+                            🌐 링크 열기
+                          </button>
                         </a>
                         """,
-                        unsafe_allow_html=True
+                        unsafe_allow_html=True,
                     )
     
         # ───────────────────────────────
@@ -484,13 +488,18 @@ def main():
     
     
     # ───────────────────────────────
-    # Page 3 (최종 선택 + 상세 카드)
+    # Page 3 : 최종 선택 + 상세 카드
     # ───────────────────────────────
     elif st.session_state.page == "page3":
         st.header("🎯 최종 선택")
     
         choice = st.session_state.get("choice")
         filtered_df = filter_by_category_tf(all_df, choice)
+    
+        # ✅ 2페이지에서 선택한 업태 반영
+        selected_types = st.session_state.get("selected_types", [])
+        if selected_types:
+            filtered_df = filtered_df[filtered_df["category"].isin(selected_types)]
     
         if filtered_df.empty:
             st.warning("선택 가능한 식당이 없습니다. 2페이지에서 다시 선택해주세요.")
@@ -499,6 +508,14 @@ def main():
             df = df.reset_index(drop=True)
     
             st.markdown(f"### 오늘의 분위기: **{choice}**")
+            if selected_types:
+                st.markdown(
+                    "🏷️ 선택한 업태: " + " · ".join(
+                        [f"<span style='background:#e8f5ff; padding:3px 8px; border-radius:6px;'>{t}</span>"
+                         for t in selected_types]),
+                    unsafe_allow_html=True,
+                )
+    
             st.markdown("#### 최종으로 방문할 식당을 선택하세요 👇")
     
             selected_name = st.selectbox("식당 선택", df["이름"])
@@ -521,39 +538,41 @@ def main():
             st.markdown(
                 f"""
                 <div style="
-                    background-color: #ffffff;
-                    border-radius: 12px;
-                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-                    padding: 20px;
-                    margin-top: 10px;
-                    margin-bottom: 20px;
-                    border: 1px solid #e8e8e8;">
+                    background-color:#ffffff;
+                    border-radius:12px;
+                    box-shadow:0 2px 10px rgba(0,0,0,0.1);
+                    padding:20px;
+                    margin-top:10px;
+                    margin-bottom:20px;
+                    border:1px solid #e8e8e8;">
                     <h3 style="margin-bottom:5px;">🍴 {selected_row['이름']}</h3>
                     {info_html}
                     <a href="{selected_row['map_link']}" target="_blank" style="text-decoration:none;">
-                        <button style="
-                            background-color:#87CEEB;
-                            color:white;
-                            border:none;
-                            padding:10px 18px;
-                            border-radius:8px;
-                            cursor:pointer;
-                            font-size:16px;
-                            font-weight:500;
-                            box-shadow:0 2px 4px rgba(0,0,0,0.1);
-                            transition:0.2s;
-                            margin-top:10px;"
-                            onmouseover="this.style.backgroundColor='#5ec2e0'"
-                            onmouseout="this.style.backgroundColor='#87CEEB'">
-                            🌐 지도에서 보기
-                        </button>
+                      <button style="
+                        background-color:#87CEEB;
+                        color:white;
+                        border:none;
+                        padding:10px 18px;
+                        border-radius:8px;
+                        cursor:pointer;
+                        font-size:16px;
+                        font-weight:500;
+                        box-shadow:0 2px 4px rgba(0,0,0,0.1);
+                        transition:0.2s;
+                        margin-top:10px;"
+                        onmouseover="this.style.backgroundColor='#5ec2e0'"
+                        onmouseout="this.style.backgroundColor='#87CEEB'">
+                        🌐 지도에서 보기
+                      </button>
                     </a>
                 </div>
                 """,
-                unsafe_allow_html=True
+                unsafe_allow_html=True,
             )
     
+        # ───────────────────────────────
         # 페이지 이동 버튼
+        # ───────────────────────────────
         st.divider()
         col1, col2 = st.columns(2)
         with col1:
@@ -564,7 +583,6 @@ def main():
             if st.button("🏠 처음으로"):
                 st.session_state.page = "page1"
                 st.rerun()
-
-
+                
 if __name__ == "__main__":
     main()
