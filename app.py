@@ -301,20 +301,51 @@ def main():
             df = df.reset_index(drop=True)
             df.index = df.index + 1
     
-            # 열기 버튼 텍스트 생성
+            # 열기 버튼 HTML 생성
             df["열기"] = [
-                f"🌐 [열기]({link})" if pd.notna(link) and str(link).startswith("http") else ""
+                f"<a href='{link}' target='_blank' style='text-decoration:none;'>"
+                f"<button style='padding:5px 12px; border:none; background-color:#87CEEB; "
+                f"color:white; border-radius:6px; cursor:pointer;'>열기</button>"
+                f"</a>"
+                if pd.notna(link) and str(link).startswith("http") else ""
                 for link in df["map_link"]
             ]
     
             df_display = df[["이름", "거리", "열기"]]
     
-            # 스크롤 가능한 dataframe (10개 정도 표시)
-            st.dataframe(
-                df_display,
-                use_container_width=True,   # 전체 너비 꽉 차게
-                height=400,                 # 약 10행 정도 표시
+            # CSS: 표 전체 너비 & 세로 스크롤 지정
+            st.markdown(
+                """
+                <style>
+                .scroll-table {
+                    width: 100%;
+                    overflow-y: auto;
+                    height: 420px; /* 스크롤 높이 (약 10행) */
+                    border: 1px solid #ddd;
+                    border-radius: 10px;
+                    background-color: white;
+                }
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    font-size: 16px;
+                }
+                th, td {
+                    border-bottom: 1px solid #eee;
+                    text-align: left;
+                    padding: 10px 15px;
+                }
+                th {
+                    background-color: #f8f9fa;
+                }
+                </style>
+                """,
+                unsafe_allow_html=True,
             )
+    
+            # HTML 테이블 출력 (버튼 포함)
+            html_table = df_display.to_html(escape=False, index=True)
+            st.markdown(f"<div class='scroll-table'>{html_table}</div>", unsafe_allow_html=True)
     
         else:
             st.warning("해당 카테고리 음식점이 없습니다.")
