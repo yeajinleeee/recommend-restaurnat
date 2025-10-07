@@ -288,40 +288,44 @@ def main():
 
     all_df = get_restaurant_within_500m_from_supabase(user_lat, user_lon)
 
-    # ── PAGE 1 ───────────────────
+    # Page 1
     if st.session_state.page == "page1":
         st.header("현재 날씨에 추천 드리는 카테고리입니다.")
         choice = st.radio("카테고리를 선택하세요 👇", options=opts)
         filtered_df = filter_by_category_tf(all_df, choice)
-
+    
         st.subheader(f"‘{choice}’ 카테고리에 해당되는 반경 500M 내 음식점 (거리순)")
-
+    
         if not filtered_df.empty:
             df = prettify_dataframe(filtered_df)[["이름", "거리", "map_link"]].copy()
             df = df.reset_index(drop=True)
             df.index = df.index + 1
-
-            # 💙 하늘색(#87CEEB) 열기 버튼
+    
+            # 열기 버튼 텍스트 생성
             df["열기"] = [
-                f"<a href='{link}' target='_blank' style='text-decoration:none;'>"
-                f"<button style='padding:4px 10px; border:none; background-color:#87CEEB; color:white; border-radius:5px; cursor:pointer;'>열기</button>"
-                f"</a>"
-                if pd.notna(link) and str(link).startswith("http") else ""
+                f"🌐 [열기]({link})" if pd.notna(link) and str(link).startswith("http") else ""
                 for link in df["map_link"]
             ]
-
+    
             df_display = df[["이름", "거리", "열기"]]
-            st.markdown(df_display.to_html(escape=False, index=True), unsafe_allow_html=True)
-
+    
+            # 스크롤 가능한 dataframe (10개 정도 표시)
+            st.dataframe(
+                df_display,
+                use_container_width=True,   # 전체 너비 꽉 차게
+                height=400,                 # 약 10행 정도 표시
+            )
+    
         else:
             st.warning("해당 카테고리 음식점이 없습니다.")
-
+    
         col1, col2 = st.columns([9, 1])
         with col2:
             if st.button("➡ 다음"):
                 st.session_state.choice = choice
                 st.session_state.page = "page2"
                 st.rerun()
+
 
     # ── PAGE 2 ───────────────────
     elif st.session_state.page == "page2":
