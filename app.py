@@ -73,7 +73,7 @@ def resolve_tf_column(frame: pd.DataFrame, expected_label: str) -> str | None:
     return None
 
 # ───────────────────────────────
-# prettify: 컬럼명 + 거리 단위
+# prettify
 # ───────────────────────────────
 def prettify_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     if df is None or df.empty:
@@ -87,7 +87,6 @@ def prettify_dataframe(df: pd.DataFrame) -> pd.DataFrame:
         df["거리"] = pd.to_numeric(df["distance_km"], errors="coerce").apply(
             lambda x: f"{x:.2f}km" if pd.notna(x) else ""
         )
-
     rename_map = {
         "name_g": "이름",
         "name": "이름",
@@ -100,7 +99,7 @@ def prettify_dataframe(df: pd.DataFrame) -> pd.DataFrame:
         "address": "주소",
         "도로명주소": "주소",
         "지번주소": "주소",
-        "map_link": "지도링크"   # ✅ 추가
+        "map_link": "지도링크"
     }
     df.rename(columns=rename_map, inplace=True)
     return df
@@ -205,7 +204,7 @@ def select_and_filter_by_business_type(frame: pd.DataFrame) -> Tuple[pd.DataFram
     return filtered, selected
 
 # ───────────────────────────────
-# ✅ 5+. 추가: 선택한 가게 카드 표시 함수
+# 5+. 카드 표시
 # ───────────────────────────────
 def show_restaurant_card(info: dict):
     if not info:
@@ -240,7 +239,6 @@ def main():
         w = {"description":"알수없음","temperature":"?"}
         group_name, opts, mood = "구름", ["가볍게 간단히","든든한 한끼","디저트/카페"], "실내 중심"
 
-    # 사이드바 카드
     with st.sidebar:
         st.markdown(f"<div style='background:#fff; border-radius:10px; padding:15px; margin-bottom:15px;'>"
                     f"<h3>📍 현재 위치</h3><p>위도: {user_lat:.4f}, 경도: {user_lon:.4f}</p></div>", unsafe_allow_html=True)
@@ -255,18 +253,17 @@ def main():
     if st.session_state.page == "page1":
         st.header("현재 날씨에 추천 드리는 카테고리입니다.")
         choice = st.radio("카테고리를 선택하세요 👇", options=opts)
-
         filtered_df = filter_by_category_tf(all_df, choice)
-        st.subheader(f"‘{choice}’ 카테고리에 해당되는 반경 500M 내 음식점 (거리순)")
 
+        st.subheader(f"‘{choice}’ 카테고리에 해당되는 반경 500M 내 음식점 (거리순)")
         if not filtered_df.empty:
             df = prettify_dataframe(filtered_df)[["이름","거리","지도링크"]]
             df = df.reset_index(drop=True)
             df.index = df.index + 1
-
-            # ✅ 이름 클릭 시 지도 링크 열리게
-            for _, row in df.iterrows():
-                st.markdown(f"[{row['이름']}]({row['지도링크']}) — {row['거리']}", unsafe_allow_html=True)
+            df["이름"] = df.apply(
+                lambda row: f"<a href='{row['지도링크']}' target='_blank'>{row['이름']}</a>", axis=1
+            )
+            st.markdown(df[["이름","거리"]].to_html(escape=False, index=True), unsafe_allow_html=True)
         else:
             st.warning("해당 카테고리 음식점이 없습니다.")
 
@@ -288,18 +285,15 @@ def main():
         tabs = st.tabs(["거리순", "별점순", "리뷰순", "지도"])
         with tabs[0]:
             df = prettify_dataframe(filtered.sort_values("distance_m"))
-            df = df.reset_index(drop=True); df.index = df.index + 1
+            df = df.reset_index(drop=True)
+            df.index = df.index + 1
+            st.dataframe(df[["이름","거리","주소","별점","리뷰 수"]], use_container_width=True, height=500)
             for i, row in df.iterrows():
-                col1, col2 = st.columns([8,2])
-                with col1:
-                    st.markdown(f"**{row['이름']}** — {row['거리']}")
-                with col2:
-                    if st.button("선택하기", key=f"sel_{i}"):
-                        st.session_state.selected_restaurant = row.to_dict()
-                        st.session_state.page = "page3"
-                        st.rerun()
+                if st.button(f"‘{row['이름']}’ 선택하기", key=f"sel_{i}"):
+                    st.session_state.selected_restaurant = row.to_dict()
+                    st.session_state.page = "page3"
+                    st.rerun()
 
-        # 기존 탭 (별점순, 리뷰순, 지도) 유지
         with tabs[1]:
             if "rating" in filtered.columns:
                 df = prettify_dataframe(filtered.sort_values("rating", ascending=False))
@@ -320,22 +314,18 @@ def main():
                                       get_fill_color=[255,0,0,160], pickable=True)]
                 ))
 
-        col1, col2 = st.columns([9,1])
-        with col1:
-            if st.button("⬅ 이전"):
-                st.session_state.page = "page1"
-                st.rerun()
+        if st.button("⬅ 이전"):
+            st.session_state.page = "page1"
+            st.rerun()
 
     # ───────────── Page 3 ─────────────
     elif st.session_state.page == "page3":
         st.header("최종 선택된 음식점 🍽️")
         show_restaurant_card(st.session_state.selected_restaurant)
-
         if st.button("⬅ 다시 선택"):
             st.session_state.page = "page2"
             st.rerun()
 
-# ───────────────────────────────
 if __name__ == "__main__":
     main()
 
