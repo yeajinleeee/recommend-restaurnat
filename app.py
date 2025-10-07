@@ -330,13 +330,13 @@ def main():
         else:
             st.warning("해당 카테고리 음식점이 없습니다.")
 
-    # ── 페이지 이동 버튼 ─────────────────
-    col1, col2 = st.columns([9, 1])
-    with col2:
-        if st.button("➡ 다음"):
-            st.session_state.choice = choice
-            st.session_state.page = "page2"
-            st.rerun()
+        # ── 페이지 이동 버튼 ─────────────────
+        col1, col2 = st.columns([9, 1])
+        with col2:
+            if st.button("➡ 다음"):
+                st.session_state.choice = choice
+                st.session_state.page = "page2"
+                st.rerun()
 
 
     # ── PAGE 2 ───────────────────
