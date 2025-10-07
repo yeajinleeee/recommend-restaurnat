@@ -20,16 +20,27 @@ SUPABASE_KEY: str = os.getenv("SUPABASE_API_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 OPENWEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
 
-st.set_page_config(
-    page_title="날씨 + 위치 기반 음식점 추천",
-    page_icon="🍜",
-    layout="wide"
-)
-
+st.set_page_config(page_title="날씨 + 위치 기반 음식점 추천", page_icon="🍜", layout="wide")
 st.title("날씨 + 위치 기반 음식점 추천 🌨️")
 
 # ───────────────────────────────
-# 1. 유틸
+# 1. 호환용 쿼리 파라미터 함수 (Streamlit 1.38+ 대응)
+# ───────────────────────────────
+def get_query_params():
+    try:
+        return st.query_params
+    except AttributeError:
+        return st.experimental_get_query_params()
+
+def set_query_params(**kwargs):
+    try:
+        st.query_params.clear()
+        st.query_params.update(kwargs)
+    except AttributeError:
+        st.experimental_set_query_params(**kwargs)
+
+# ───────────────────────────────
+# 2. 유틸
 # ───────────────────────────────
 seoul_lat, seoul_lon = 37.5665, 126.9780
 
@@ -94,7 +105,7 @@ def prettify_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 # ───────────────────────────────
-# 2. API
+# 3. API
 # ───────────────────────────────
 def fetch_weather(lat: float, lon: float) -> dict:
     url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={OPENWEATHER_API_KEY}&units=metric&lang=kr"
@@ -115,7 +126,7 @@ def get_restaurant_within_500m_from_supabase(lat: float, lon: float):
         return pd.DataFrame()
 
 # ───────────────────────────────
-# 3. 필터링
+# 4. 필터링
 # ───────────────────────────────
 def filter_by_category_tf(frame: pd.DataFrame, theme: str) -> pd.DataFrame:
     if frame.empty: return pd.DataFrame()
@@ -127,7 +138,7 @@ def filter_by_category_tf(frame: pd.DataFrame, theme: str) -> pd.DataFrame:
     return out
 
 # ───────────────────────────────
-# 4. Main
+# 5. Main
 # ───────────────────────────────
 def main():
     if "page" not in st.session_state: st.session_state.page = "page1"
@@ -140,35 +151,54 @@ def main():
     except:
         desc, temp = "알수없음", "?"
 
+    # ─── 사이드바 복원 (3개 카드 유지)
     with st.sidebar:
         st.markdown(f"<div style='background:#fff; border-radius:10px; padding:15px; margin-bottom:10px;'>"
-                    f"<h3>📍 현재 위치</h3><p>위도: {user_lat:.4f}, 경도: {user_lon:.4f}</p></div>", unsafe_allow_html=True)
-        st.markdown(f"<div style='background:#fff; border-radius:10px; padding:15px;'>"
+                    f"<h3>📍 현재 위치</h3><p>{user_lat:.4f}, {user_lon:.4f}</p></div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='background:#fff; border-radius:10px; padding:15px; margin-bottom:10px;'>"
                     f"<h3>🌤️ 현재 날씨</h3><p>{desc}, {temp}°C</p></div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='background:#fff; border-radius:10px; padding:15px;'>"
+                    f"<h3>💡 추천 키워드</h3><p>실내 중심, 든든한 한끼</p></div>", unsafe_allow_html=True)
 
     all_df = get_restaurant_within_500m_from_supabase(user_lat, user_lon)
 
-    # Page 1
+    # ─── Page 1
     if st.session_state.page == "page1":
         st.header("현재 날씨에 추천 드리는 카테고리입니다.")
         opts = ["든든한 한끼", "디저트/카페", "가볍게 간단히"]
         choice = st.radio("카테고리를 선택하세요 👇", options=opts)
-
         filtered_df = filter_by_category_tf(all_df, choice)
         st.subheader(f"‘{choice}’ 카테고리 음식점 (반경 500M)")
 
         if not filtered_df.empty:
             df = prettify_dataframe(filtered_df)
-            if "map_link" not in df.columns: df["map_link"] = ""
             df = df.reset_index(drop=True)
             df.index = df.index + 1
 
-            # 🔗 링크 버튼 컬럼 추가
-            df["링크"] = df["map_link"].apply(
-                lambda x: f"<a href='{x}' target='_blank' "
-                          f"style='color:black; border:1px solid black; padding:3px 8px; border-radius:6px; text-decoration:none;'>열기 🔗</a>"
-            )
-            st.markdown(df[["이름", "거리", "링크"]].to_html(escape=False, index=True), unsafe_allow_html=True)
+            # 💄 CSS 기반 표 디자인
+            html_rows = ""
+            for i, row in df.iterrows():
+                name, dist, link = row.get("이름", ""), row.get("거리", ""), row.get("map_link", "")
+                html_rows += f"""
+                <tr>
+                    <td style='text-align:center'>{i}</td>
+                    <td style='padding:8px'>{name}</td>
+                    <td style='text-align:center'>{dist}</td>
+                    <td style='text-align:center'>
+                        <a href='{link}' target='_blank'
+                        style='color:black; border:1px solid black; padding:3px 8px;
+                        border-radius:6px; text-decoration:none;'>열기 🔗</a>
+                    </td>
+                </tr>
+                """
+            st.markdown(f"""
+            <div style='max-height:500px; overflow-y:auto'>
+                <table style='width:100%; border-collapse:collapse;'>
+                    <thead><tr><th>번호</th><th>이름</th><th>거리</th><th>링크</th></tr></thead>
+                    <tbody>{html_rows}</tbody>
+                </table>
+            </div>
+            """, unsafe_allow_html=True)
         else:
             st.warning("해당 카테고리 음식점이 없습니다.")
 
@@ -177,15 +207,14 @@ def main():
             st.session_state.page = "page2"
             st.rerun()
 
-    # Page 2
+    # ─── Page 2
     elif st.session_state.page == "page2":
         choice = st.session_state.get("choice")
         st.header(f"‘{choice}’ 카테고리 결과")
-        filtered_df = filter_by_category_tf(all_df, choice)
 
+        filtered_df = filter_by_category_tf(all_df, choice)
         tabs = st.tabs(["거리순", "별점순", "리뷰순", "지도"])
 
-        # 거리순 탭 (이름 클릭 → 3페이지 이동)
         with tabs[0]:
             df = prettify_dataframe(filtered_df)
             df = df.sort_values("distance_m").reset_index(drop=True)
@@ -193,16 +222,19 @@ def main():
 
             html_rows = ""
             for i, row in df.iterrows():
-                name = row["이름"]
-                dist = row["거리"]
+                name = row.get("이름", "")
+                dist = row.get("거리", "")
                 link = row.get("map_link", "")
                 html_rows += f"""
                     <tr>
                         <td style='text-align:center'>{i}</td>
-                        <td><a href='?store={name}' style='color:blue; text-decoration:none; font-weight:bold;'>{name}</a></td>
+                        <td style='padding:8px'>
+                            <a href='#' onclick="window.parent.postMessage('{name}','*');"
+                               style='color:#0056b3; font-weight:400; text-decoration:underline;'>{name}</a>
+                        </td>
                         <td style='text-align:center'>{dist}</td>
                         <td style='text-align:center'>
-                            <a href='{link}' target='_blank' 
+                            <a href='{link}' target='_blank'
                             style='color:black; border:1px solid black; padding:3px 8px; border-radius:6px; text-decoration:none;'>열기 🔗</a>
                         </td>
                     </tr>
@@ -210,44 +242,30 @@ def main():
             html_table = f"<table style='width:100%; border-collapse:collapse;'><thead><tr><th>번호</th><th>이름</th><th>거리</th><th>링크</th></tr></thead><tbody>{html_rows}</tbody></table>"
             st.markdown(f"<div style='max-height:500px; overflow-y:auto'>{html_table}</div>", unsafe_allow_html=True)
 
-            # 하이퍼링크 클릭 처리
-            params = st.experimental_get_query_params()
-            store = params.get("store", [None])[0]
+            # JS 메시지 수신 → 3페이지 전환
+            st.markdown("""
+            <script>
+            window.addEventListener("message", (event) => {
+                if (event.data){
+                    const store = event.data;
+                    window.parent.streamlitAPI.setComponentValue(store);
+                }
+            });
+            </script>
+            """, unsafe_allow_html=True)
+
+            store = st.experimental_get_query_params().get("store", [None])[0]
             if store:
                 st.session_state.selected_store = store
                 st.session_state.page = "page3"
-                st.experimental_set_query_params()
+                set_query_params()
                 st.rerun()
-
-        with tabs[1]:
-            if "rating" in filtered_df.columns:
-                df = prettify_dataframe(filtered_df.sort_values("rating", ascending=False))
-                df.index = df.index + 1
-                st.dataframe(df[["이름", "별점"]])
-
-        with tabs[2]:
-            if "review_cnt" in filtered_df.columns:
-                df = prettify_dataframe(filtered_df.sort_values("review_cnt", ascending=False))
-                df.index = df.index + 1
-                st.dataframe(df[["이름", "리뷰 수"]])
-
-        with tabs[3]:
-            if not filtered_df.empty:
-                df_map = filtered_df.rename(columns={"latitude": "lat", "longitude": "lon"}).copy()
-                st.pydeck_chart(pdk.Deck(
-                    map_provider="maplibre",
-                    map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
-                    initial_view_state=pdk.ViewState(latitude=user_lat, longitude=user_lon, zoom=15),
-                    layers=[pdk.Layer("ScatterplotLayer", data=df_map,
-                                      get_position="[lon, lat]", get_radius=60,
-                                      get_fill_color=[255, 0, 0, 160], pickable=True)]
-                ))
 
         if st.button("⬅ 이전"):
             st.session_state.page = "page1"
             st.rerun()
 
-    # Page 3
+    # ─── Page 3
     elif st.session_state.page == "page3":
         st.header("🍽️ 선택한 음식점 정보")
 
