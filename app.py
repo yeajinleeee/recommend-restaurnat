@@ -9,7 +9,6 @@ import pydeck as pdk
 from haversine import haversine
 from typing import List, Tuple
 import re
-import urllib.parse
 
 # ───────────────────────────────
 # 0. 환경 설정
@@ -19,7 +18,6 @@ SUPABASE_URL: str = os.getenv("SUPABASE_URL")
 SUPABASE_KEY: str = os.getenv("SUPABASE_API_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 OPENWEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
-GOOGLE_PLACES_API_KEY = os.getenv("GOOGLE_PLACES_API_KEY")
 
 st.set_page_config(page_title="날씨 + 위치 기반 음식점 추천", page_icon="🍜", layout="wide")
 st.title("날씨 + 위치 기반 음식점 추천 🌨️")
