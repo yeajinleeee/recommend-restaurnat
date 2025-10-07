@@ -48,7 +48,7 @@ def _normalize_label(s: str) -> str:
     if s is None:
         return ""
     s = str(s).lower()
-    return re.sub(r"[\s/_\-()]+", "", s)
+    return re.sub(r"[\s/_\\-()]+", "", s)
 
 def coerce_tf_bool(frame: pd.DataFrame) -> pd.DataFrame:
     for col in frame.columns:
@@ -245,11 +245,9 @@ def main():
             df = prettify_dataframe(filtered_df)[["이름","거리","map_link"]].reset_index(drop=True)
             df.index = df.index + 1
 
-            # 이름 → 클릭 가능한 링크
-            df["이름"] = df.apply(lambda x: f"[{x['이름']}]({x['map_link']})", axis=1)
-
-            st.markdown(df[["이름","거리"]].to_markdown(index=False), unsafe_allow_html=True)
-
+            # 이름을 클릭 가능한 HTML 링크로 변환
+            df["이름"] = df.apply(lambda x: f"<a href='{x['map_link']}' target='_blank'>{x['이름']}</a>", axis=1)
+            st.markdown(df[["이름","거리"]].to_html(escape=False, index=False), unsafe_allow_html=True)
         else:
             st.warning("해당 카테고리 음식점이 없습니다.")
 
@@ -272,8 +270,8 @@ def main():
         if not filtered.empty:
             df = prettify_dataframe(filtered)[["이름","거리","map_link"]].reset_index(drop=True)
             df.index = df.index + 1
-            df["이름"] = df.apply(lambda x: f"[{x['이름']}]({x['map_link']})", axis=1)
-            st.markdown(df[["이름","거리"]].to_markdown(index=False), unsafe_allow_html=True)
+            df["이름"] = df.apply(lambda x: f"<a href='{x['map_link']}' target='_blank'>{x['이름']}</a>", axis=1)
+            st.markdown(df[["이름","거리"]].to_html(escape=False, index=False), unsafe_allow_html=True)
         else:
             st.warning("데이터가 없습니다.")
 
@@ -293,7 +291,6 @@ def main():
     elif st.session_state.page == "page3":
         st.header("최종 선택")
 
-        # 카드 형태로 map_link 정보 표시
         st.success("선택된 맛집 정보입니다 🍽️")
         if st.session_state.get("selected_store"):
             store = st.session_state.selected_store
