@@ -596,14 +596,13 @@ def main():
         # ───────────────────────────────
         # 페이지 이동 버튼
         # ───────────────────────────────
-        st.divider()
-        col1, col2 = st.columns(2)
+        col1, col2 = st.columns([9, 1])
         with col1:
-            if st.button("⬅ 다시 보기"):
+            if st.button("⬅ 이전"):
                 st.session_state.page = "page2"
                 st.rerun()
         with col2:
-            if st.button("🏠 처음으로"):
+            if st.button("처음으로"):
                 st.session_state.page = "page1"
                 st.rerun()
                 
