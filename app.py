@@ -304,11 +304,11 @@ def main():
             df = df.reset_index(drop=True)
             df.index = df.index + 1
     
-            # ── 표 출력 (Streamlit 기본 스타일 유지) ─────────────────
+            # ── 표 출력 ─────────────────
             st.dataframe(
                 df[["이름", "거리"]],
-                use_container_width=True,  # 화면 너비 꽉 차게
-                height=420,                # 약 10행 표시 (스크롤 가능)
+                use_container_width=True,
+                height=420,
             )
     
             # ── 링크 열기 기능 ─────────────────
@@ -317,22 +317,27 @@ def main():
             link = df.loc[df["이름"] == clicked_row, "map_link"].iloc[0]
     
             if st.button("🌐 링크 열기", type="primary"):
-                # ✅ JS로 실제 새 탭 열기
-                js = f"window.open('{link}');"
-                html = f"<script>{js}</script>"
-                st.markdown(html, unsafe_allow_html=True)
-                st.success(f"✅ {clicked_row}의 링크를 새 탭에서 열었어요! ✨")
+                st.markdown(
+                    f"""
+                    <div style="margin-top:10px; font-size:17px;">
+                        ✅ {clicked_row}의 위치를 새 탭에서 보시려면 아래 링크를 클릭하세요.<br>
+                        👉 <a href="{link}" target="_blank" style="color:#1E90FF; font-weight:600;">지도 열기</a>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
     
         else:
             st.warning("해당 카테고리 음식점이 없습니다.")
-    
-        # ── 페이지 이동 버튼 ─────────────────
-        col1, col2 = st.columns([9, 1])
-        with col2:
-            if st.button("➡ 다음"):
-                st.session_state.choice = choice
-                st.session_state.page = "page2"
-                st.rerun()
+
+    # ── 페이지 이동 버튼 ─────────────────
+    col1, col2 = st.columns([9, 1])
+    with col2:
+        if st.button("➡ 다음"):
+            st.session_state.choice = choice
+            st.session_state.page = "page2"
+            st.rerun()
+
 
 
     # ── PAGE 2 ───────────────────
