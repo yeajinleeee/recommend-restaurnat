@@ -297,107 +297,67 @@ def main():
         st.subheader(f"‘{choice}’ 카테고리에 해당되는 반경 500M 내 음식점 (거리순)")
     
         if not filtered_df.empty:
+            # === Supabase 데이터 준비 ===
             df = prettify_dataframe(filtered_df)[["이름", "거리", "map_link"]].copy()
             df = df.reset_index(drop=True)
             df.index = df.index + 1
     
-            # 버튼 HTML 생성
-            df["열기"] = [
-                f"<a href='{link}' target='_blank' style='text-decoration:none;'>"
-                f"<button class='open-btn'>열기</button></a>"
-                if pd.notna(link) and str(link).startswith('http') else ''
-                for link in df["map_link"]
-            ]
+            # === 버튼 컬럼 추가 ===
+            df["열기"] = "열기 🔗"
     
-            df_display = df[["이름", "거리", "열기"]]
+            # === 표시용 테이블 ===
+            edited = st.data_editor(
+                df[["이름", "거리", "열기"]],
+                hide_index=True,
+                use_container_width=True,
+                height=420,  # 10행 정도 스크롤 가능
+                disabled=["이름", "거리"],  # 편집 막기
+                column_config={
+                    "이름": st.column_config.TextColumn("이름", width="large"),
+                    "거리": st.column_config.TextColumn("거리", width="small"),
+                    "열기": st.column_config.TextColumn(
+                        "열기",
+                        help="해당 식당의 지도 링크 열기",
+                    ),
+                },
+                key="editable_table",
+            )
     
-            # 💅 세련된 CSS 스타일
-            st.markdown("""
-            <style>
-            .scroll-table {
-                width: 100%;
-                overflow-y: auto;
-                height: 420px;
-                background-color: #ffffff;
-                border-radius: 14px;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-                border: 1px solid #e8e8e8;
-            }
+            # === 선택 처리 ===
+            # 사용자가 클릭한 행(데이터 변경 감지)
+            if "last_click" not in st.session_state:
+                st.session_state.last_click = None
     
-            table {
-                width: 100%;
-                border-collapse: separate;
-                border-spacing: 0;
-                font-size: 15px;
-                color: #333;
-                border-radius: 12px;
-            }
+            # 현재 선택된 행 감지 (열기 버튼 클릭 이벤트 대체)
+            selected_row = st.session_state.get("editable_table")
+            if selected_row is not None:
+                pass  # 필요시 나중에 추가
     
-            th {
-                background-color: #f9fafb;
-                color: #444;
-                font-weight: 600;
-                text-align: left;
-                padding: 12px 16px;
-                border-bottom: 1px solid #eaeaea;
-            }
+            # 선택된 행 인덱스 탐지
+            if "selected_row_index" not in st.session_state:
+                st.session_state.selected_row_index = None
     
-            td {
-                padding: 12px 16px;
-                border-bottom: 1px solid #f1f1f1;
-                vertical-align: middle;
-            }
+            st.markdown("")
     
-            tr:hover {
-                background-color: #f5faff;
-                box-shadow: inset 0 0 6px rgba(0,0,0,0.03);
-            }
+            # 별도 '열기' 버튼
+            clicked_row = st.selectbox("열고 싶은 식당을 선택하세요 👇", df["이름"])
+            link = df.loc[df["이름"] == clicked_row, "map_link"].iloc[0]
     
-            /* 하늘색 열기 버튼 */
-            .open-btn {
-                background-color: #87CEEB;
-                color: white;
-                border: none;
-                padding: 6px 12px;
-                border-radius: 6px;
-                font-size: 14px;
-                cursor: pointer;
-                transition: all 0.2s ease;
-            }
-    
-            .open-btn:hover {
-                background-color: #5ec2e0;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            }
-    
-            /* 스크롤바 꾸미기 */
-            .scroll-table::-webkit-scrollbar {
-                width: 8px;
-            }
-            .scroll-table::-webkit-scrollbar-thumb {
-                background-color: #c2e1ef;
-                border-radius: 4px;
-            }
-            .scroll-table::-webkit-scrollbar-thumb:hover {
-                background-color: #87CEEB;
-            }
-            </style>
-            """, unsafe_allow_html=True)
-    
-            # HTML 테이블 출력
-            html_table = df_display.to_html(escape=False, index=True)
-            st.markdown(f"<div class='scroll-table'>{html_table}</div>", unsafe_allow_html=True)
+            if st.button("🌐 링크 열기", type="primary"):
+                import webbrowser
+                webbrowser.open_new_tab(link)
+                st.success(f"{clicked_row}의 링크를 새 탭에서 열었어요! ✨")
     
         else:
             st.warning("해당 카테고리 음식점이 없습니다.")
     
+        # === 페이지 이동 버튼 ===
         col1, col2 = st.columns([9, 1])
         with col2:
             if st.button("➡ 다음"):
                 st.session_state.choice = choice
                 st.session_state.page = "page2"
                 st.rerun()
-
 
 
     # ── PAGE 2 ───────────────────
