@@ -343,10 +343,10 @@ def main():
     if "page" not in st.session_state:
         st.session_state.page = "page1"
 
-    # ① 위치
+    # 위치
     user_lat, user_lon = get_user_location()
 
-    # ② 날씨
+    # 날씨
     w = fetch_weather(user_lat, user_lon)
     group_name = weather_group_from_id(w["id"])
     opts, mood = recommended_categories_from_group(group_name)
@@ -369,7 +369,7 @@ def main():
             unsafe_allow_html=True,
         )
 
-    # ③ Supabase: 반경 500m 음식점
+    # Supabase: 반경 500m 음식점
     all_df = get_restaurant_within_500m_from_supabase(user_lat, user_lon)
 
     # ──────────────────────────────────────────────────────────────────────
