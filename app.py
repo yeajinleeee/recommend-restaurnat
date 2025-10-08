@@ -404,13 +404,34 @@ def main():
                 st.rerun()
         
     # ───────────────────────────────
-    # Page 3: 최종 선택 페이지
+    # Page 3: 최종 선택 페이지 (최종 버전)
     # ───────────────────────────────
     elif st.session_state.page == "page3":
         import time
         import webbrowser
     
-        st.header("최종 선택")
+        # 버튼 색상 스타일 (연보라 + hover 진한보라)
+        st.markdown("""
+            <style>
+            div.stButton > button:first-child {
+                background-color: #C7CEFF;  /* 연보라 */
+                color: white;
+                border: none;
+                border-radius: 10px;
+                padding: 10px 26px;
+                font-weight: 600;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                transition: all 0.25s ease;
+            }
+            div.stButton > button:first-child:hover {
+                background-color: #B9C0FF;  /* hover 시 진해짐 */
+                color: white;
+                transform: scale(1.03);
+            }
+            </style>
+        """, unsafe_allow_html=True)
+    
+        st.header("최종 선택 🍽️")
     
         choice = st.session_state.get("choice", None)
         all_df = get_restaurant_within_500m_from_supabase(user_lat, user_lon)
@@ -428,7 +449,7 @@ def main():
         if filtered_df.empty:
             st.warning("선택 가능한 음식점이 없습니다.")
         else:
-            # 분위기 박스 (연한 빨강)
+            # 🔹 분위기 박스 (연한 빨강 + 밑줄)
             st.markdown(
                 f"""
                 <div style='background-color:#FFECEC; padding:12px 18px; border-radius:10px; margin-bottom:20px;'>
@@ -445,7 +466,7 @@ def main():
             selected_name = st.selectbox("음식점을 선택하세요 👇", filtered_df["이름"])
             selected_row = filtered_df[filtered_df["이름"] == selected_name].iloc[0]
     
-            # 카드 형태 정보 표시
+            # 🔹 카드 형태 정보 표시
             st.markdown("---")
             st.markdown(f"### 🍴 {selected_row['이름']}")
             st.markdown(f"📍 거리: {selected_row.get('거리', '정보 없음')}")
@@ -453,43 +474,13 @@ def main():
             st.markdown(f"💬 리뷰 수: {selected_row.get('리뷰 수', '정보 없음')}")
             st.markdown(f"🏠 주소: {selected_row.get('주소', '정보 없음')}")
     
-            # 지도 보기 버튼 (Glassmorphism + scale 효과)
+            # 🔹 지도 보기 버튼 (Toast + 새 탭 열기)
             link = selected_row["map_link"]
-            st.markdown(
-                f"""
-                <button onclick="window.open('{link}', '_blank');" style="
-                    background: rgba(199, 206, 255, 0.55);
-                    backdrop-filter: blur(6px);
-                    -webkit-backdrop-filter: blur(6px);
-                    color: white;
-                    border: 1px solid rgba(255, 255, 255, 0.3);
-                    padding: 10px 26px;
-                    border-radius: 12px;
-                    cursor: pointer;
-                    font-size: 16px;
-                    font-weight: 600;
-                    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
-                    transition: all 0.3s ease;
-                    margin-top: 10px;
-                    transform: scale(1);
-                "
-                onmouseover="this.style.background='rgba(185, 192, 255, 0.75)';
-                             this.style.transform='scale(1.05)';
-                             this.style.boxShadow='0 8px 16px rgba(0,0,0,0.2)'"
-                onmouseout="this.style.background='rgba(199, 206, 255, 0.55)';
-                            this.style.transform='scale(1)';
-                            this.style.boxShadow='0 6px 12px rgba(0,0,0,0.15)'">
-                    지도에서 보기
-                </button>
-                """,
-                unsafe_allow_html=True,
-            )
-    
-            # 버튼 클릭 시 toast 피드백
             if st.button("지도에서 보기"):
                 st.toast("✅ 선택이 완료되었습니다!", icon="🎉")
                 time.sleep(0.3)
                 webbrowser.open_new_tab(link)
+                
         # ───────────────────────────────
         # 페이지 이동 버튼
         # ───────────────────────────────
