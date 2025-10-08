@@ -488,8 +488,6 @@ def main():
                     border:1px solid #e8e8e8;">
                     <h3 style="margin-bottom:5px;">🍴 {selected_row['이름']}</h3>
                     {info_html}
-                    
-                    
                     <a href="{selected_row['map_link']}" target="_blank" style="text-decoration:none;">
                       <button style="
                         background-color:#d8ecff;
