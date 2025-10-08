@@ -515,7 +515,6 @@ def main():
                 unsafe_allow_html=True,
             )
 
-    
         # ───────────────────────────────
         # 페이지 이동 버튼 (이전 / 선택 완료)
         # ───────────────────────────────
@@ -528,8 +527,11 @@ def main():
         
         with col2:
             if st.button("✅ 선택 완료"):
-                st.success("✅ 선택이 완료되었습니다!", icon="🎉")
-                time.sleep(0.8)
+                st.markdown(
+                    "<p style='color:#2e7d32; font-weight:600; font-size:16px; margin-top:10px;'>🎉 선택이 완료되었습니다!</p>",
+                    unsafe_allow_html=True
+                )
+                time.sleep(1)
                 st.session_state.page = "page1"
                 st.rerun()
                 
