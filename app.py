@@ -398,8 +398,8 @@ def main():
                     data=df_map,
                     get_icon="icon_data",
                     get_position=["lon", "lat"],
-                    get_size=3,  # 아이콘 크기 (조절 가능)
-                    size_scale=30,
+                    get_size=5,  # 아이콘 크기 (조절 가능)
+                    size_scale=8,
                     pickable=True,
                 )
         
@@ -410,7 +410,7 @@ def main():
                     get_position=["lon", "lat"],
                     get_text="표시이름",
                     get_color=[60, 60, 60, 255],
-                    get_size=0,
+                    get_size=13,
                     get_alignment_baseline="'top'",
                 )
                 
