@@ -518,7 +518,7 @@ def main():
         # ───────────────────────────────
         # 페이지 이동 버튼 (이전 / 선택 완료)
         # ───────────────────────────────
-        # CSS: 버튼 줄바꿈 방지 + success 박스 한 줄 + 중앙 정렬
+        # CSS: 버튼 고정 + 오른쪽 정렬된 success 스타일
         st.markdown("""
             <style>
             div[data-testid="stButton"] button {
@@ -534,17 +534,16 @@ def main():
                 border-radius:6px;
                 font-size:16px;
                 font-weight:500;
-                margin-top:15px;
+                margin-top:12px;
                 white-space: nowrap;
                 display: inline-block;
                 box-shadow: 0 1px 3px rgba(0,0,0,0.08);
             }
         
-            /* 중앙 정렬용 wrapper */
-            .center-wrapper {
+            /* 오른쪽 정렬용 wrapper */
+            .right-wrapper {
                 display: flex;
-                justify-content: center;
-                align-items: center;
+                justify-content: flex-end;
                 width: 100%;
             }
             </style>
@@ -560,9 +559,9 @@ def main():
         
         with col2:
             if st.button("✅ 선택 완료"):
-                # 🎉 중앙 정렬 success 박스
+                # 🎉 오른쪽 정렬된 success 박스
                 st.markdown("""
-                    <div class="center-wrapper">
+                    <div class="right-wrapper">
                         <div class="custom-success">🎉 ✅ 선택이 완료되었습니다!</div>
                     </div>
                 """, unsafe_allow_html=True)
