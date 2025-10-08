@@ -410,7 +410,6 @@ def main():
     # ───────────────────────────────
     elif st.session_state.page == "page3":
         import streamlit.components.v1 as components
-        import time
     
         st.header("최종 선택")
     
@@ -477,51 +476,7 @@ def main():
                 info_line("🏠", "주소", selected_row.get("주소"))
             )
     
-            # 🌐 버튼 스타일 정의
-            st.markdown("""
-            <style>
-            div[data-testid="stButton"][key="map_btn"] > button {
-                background-color: #d8ecff;  /* 연파랑 */
-                color: black;
-                border: none;
-                border-radius: 8px;
-                padding: 10px 18px;
-                font-weight: 600;
-                font-size: 16px;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                transition: 0.2s;
-            }
-            div[data-testid="stButton"][key="map_btn"] > button:hover {
-                background-color: #b9ddff;  /* hover 시 더 진한 하늘색 */
-                transform: scale(1.02);
-            }
-            /* ✨ Toast 스타일 */
-            #toast {
-                visibility: hidden;
-                min-width: 260px;
-                background-color: #e8fff2;
-                color: #2e7d32;
-                text-align: center;
-                border-radius: 8px;
-                padding: 12px;
-                position: fixed;
-                z-index: 999;
-                left: 50%;
-                bottom: 50px;
-                font-size: 16px;
-                transform: translateX(-50%);
-                opacity: 0;
-                transition: opacity 0.3s ease, bottom 0.3s ease;
-            }
-            #toast.show {
-                visibility: visible;
-                opacity: 1;
-                bottom: 70px;
-            }
-            </style>
-            """, unsafe_allow_html=True)
-    
-            # 🍽️ 카드형 정보 출력 (버튼 포함)
+            # 🍽️ 카드형 정보 출력
             st.markdown("---")
             st.markdown(
                 f"""
@@ -540,25 +495,61 @@ def main():
                 unsafe_allow_html=True,
             )
     
-            # ✅ 지도에서 보기 버튼 (Streamlit 버튼으로 이벤트 감지)
+            # 🌐 버튼 스타일 정의
+            st.markdown("""
+            <style>
+            div[data-testid="stButton"][key="map_btn"] > button {
+                background-color: #d8ecff;
+                color: black;
+                border: none;
+                border-radius: 8px;
+                padding: 10px 18px;
+                font-weight: 600;
+                font-size: 16px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                transition: 0.2s;
+            }
+            div[data-testid="stButton"][key="map_btn"] > button:hover {
+                background-color: #b9ddff;
+                transform: scale(1.02);
+            }
+            </style>
+            """, unsafe_allow_html=True)
+    
+            # ✅ 버튼 이벤트 (rerun 없이 JS로 처리)
             if st.button("🌐 지도에서 보기", key="map_btn"):
-                # 브라우저에서 새 탭으로 링크 열기
-                components.html(
-                    f"<script>window.open('{selected_row['map_link']}', '_blank');</script>",
-                    height=0,
-                )
-                # ✨ Toast 표시 (JS 애니메이션)
-                components.html(
-                    """
-                    <div id="toast">✅ 선택이 완료되었습니다!</div>
+                components.html(f"""
                     <script>
-                    const toast = document.getElementById("toast");
-                    toast.classList.add("show");
-                    setTimeout(() => { toast.classList.remove("show"); }, 800);
+                    // 지도 새 탭 열기
+                    window.open("{selected_row['map_link']}", "_blank");
+    
+                    // ✅ Toast 생성
+                    const toast = document.createElement("div");
+                    toast.innerText = "✅ 선택이 완료되었습니다!";
+                    toast.style.position = "fixed";
+                    toast.style.left = "50%";
+                    toast.style.bottom = "60px";
+                    toast.style.transform = "translateX(-50%)";
+                    toast.style.background = "#e8fff2";
+                    toast.style.color = "#2e7d32";
+                    toast.style.padding = "12px 18px";
+                    toast.style.borderRadius = "8px";
+                    toast.style.fontSize = "16px";
+                    toast.style.boxShadow = "0 2px 8px rgba(0,0,0,0.15)";
+                    toast.style.opacity = "0";
+                    toast.style.transition = "opacity 0.3s ease";
+                    document.body.appendChild(toast);
+    
+                    // Fade-in
+                    setTimeout(() => {{ toast.style.opacity = "1"; }}, 100);
+    
+                    // Fade-out 후 제거
+                    setTimeout(() => {{
+                        toast.style.opacity = "0";
+                        setTimeout(() => toast.remove(), 400);
+                    }}, 800);
                     </script>
-                    """,
-                    height=0,
-                )
+                """, height=0)
     
         # ───────────────────────────────
         # 페이지 이동 버튼
