@@ -452,11 +452,7 @@ def main():
             if selected_types:
                 st.markdown(
                     "<b>선택한 업태:</b> " + " · ".join(
-                        [f"<span style='background:#e8f5ff;
-                                        padding:3px 8px;
-                                        border-radius:6px; 
-                                        margin-right:4px;
-                                        '>{t}</span>"
+                        [f"<span style='background:#e8f5ff;padding:3px 8px;border-radius:6px; margin-right:4px;'>{t}</span>"
                          for t in selected_types]),
                     unsafe_allow_html=True,
                 )
