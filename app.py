@@ -404,114 +404,92 @@ def main():
                 st.rerun()
         
     # ───────────────────────────────
-    # Page 3 : 최종 선택 + 상세 카드
+    # Page 3: 최종 선택 페이지
     # ───────────────────────────────
     elif st.session_state.page == "page3":
+        import time
+        import webbrowser
+    
         st.header("최종 선택")
     
-        choice = st.session_state.get("choice")
-        filtered_df = filter_by_category_tf(all_df, choice)
+        choice = st.session_state.get("choice", None)
+        all_df = get_restaurant_within_500m_from_supabase(user_lat, user_lon)
     
-        # 2페이지에서 선택한 업태 반영
+        if choice:
+            filtered_df = filter_by_category_tf(all_df, choice)
+        else:
+            filtered_df = all_df
+    
+        # 업태 필터링 반영
         selected_types = st.session_state.get("selected_types", [])
         if selected_types:
             filtered_df = filtered_df[filtered_df["category"].isin(selected_types)]
     
         if filtered_df.empty:
-            st.warning("선택 가능한 식당이 없습니다. 2페이지에서 다시 선택해주세요.")
+            st.warning("선택 가능한 음식점이 없습니다.")
         else:
-            df = prettify_dataframe(filtered_df).copy()
-            df = df.reset_index(drop=True)
-    
-            # 오늘의 분위기: 연한 빨강 배경 태그 스타일
+            # 분위기 박스 (연한 빨강)
             st.markdown(
                 f"""
-                <div style="margin-bottom:8px;">
-                  <span style="font-weight:600; font-size:18px;">오늘의 분위기:</span>
-                  <span style="
-                      background:#ffeaea;
-                      color:#d9534f;
-                      padding:4px 10px;
-                      border-radius:8px;
-                      margin-left:8px;
-                      font-size:16px;
-                      font-weight:600;
-                      ">
-                      {choice}
-                  </span>
+                <div style='background-color:#FFECEC; padding:12px 18px; border-radius:10px; margin-bottom:20px;'>
+                    <strong style='color:#C71515;'>오늘의 분위기 :</strong>
+                    <span style='font-weight:600; margin-left:5px; text-decoration:underline;'>
+                        {choice if choice else "선택 없음"}
+                    </span>
                 </div>
                 """,
-                unsafe_allow_html=True,
+                unsafe_allow_html=True
             )
     
-            # 선택한 업태: 연한 파랑 배경 태그 스타일
-            if selected_types:
-                st.markdown(
-                    "<b>선택한 업태:</b> " + " · ".join(
-                        [f"<span style='background:#e8f5ff; padding:3px 8px; border-radius:6px; margin-right:4px;'>{t}</span>"
-                         for t in selected_types]),
-                    unsafe_allow_html=True,
-                )
-                
+            # 음식점 선택
+            selected_name = st.selectbox("음식점을 선택하세요 👇", filtered_df["이름"])
+            selected_row = filtered_df[filtered_df["이름"] == selected_name].iloc[0]
+    
+            # 카드 형태 정보 표시
             st.markdown("---")
-            st.markdown("#### 최종으로 방문할 식당을 선택하세요 👇")
+            st.markdown(f"### 🍴 {selected_row['이름']}")
+            st.markdown(f"📍 거리: {selected_row.get('거리', '정보 없음')}")
+            st.markdown(f"⭐ 별점: {selected_row.get('별점', '정보 없음')}")
+            st.markdown(f"💬 리뷰 수: {selected_row.get('리뷰 수', '정보 없음')}")
+            st.markdown(f"🏠 주소: {selected_row.get('주소', '정보 없음')}")
     
-            # 식당 선택
-            selected_name = st.selectbox("식당 선택", df["이름"])
-            selected_row = df[df["이름"] == selected_name].iloc[0]
-    
-            # 카드 정보 표시
-            def info_line(icon, label, value):
-                if value not in [None, "", "nan", "정보 없음"]:
-                    return f"<p style='margin:5px 0;'>{icon} <b>{label}:</b> {value}</p>"
-                return ""
-    
-            info_html = (
-                info_line("📍", "거리", selected_row.get("거리")) +
-                info_line("⭐", "별점", selected_row.get("별점")) +
-                info_line("💬", "리뷰 수", selected_row.get("리뷰 수")) +
-                info_line("🏠", "주소", selected_row.get("주소"))
-            )
-    
-            # 카드형 정보 출력
+            # 지도 보기 버튼 (Glassmorphism + scale 효과)
+            link = selected_row["map_link"]
             st.markdown(
                 f"""
-                <div style="
-                    background-color:#ffffff;
-                    border-radius:12px;
-                    box-shadow:0 2px 10px rgba(0,0,0,0.1);
-                    padding:20px;
-                    margin-top:10px;
-                    margin-bottom:20px;
-                    border:1px solid #e8e8e8;">
-                    <h3 style="margin-bottom:5px;">🍴 {selected_row['이름']}</h3>
-                    {info_html}
-                    <a href="{selected_row['map_link']}" target="_blank" style="text-decoration:none;">
-                      <button style="
-                        background-color:#B7E0F2;
-                        color:#004C74;
-                        border:none;
-                        padding:10px 18px;
-                        border-radius:8px;
-                        cursor:pointer;
-                        font-size:16px;
-                        font-weight:600;
-                        box-shadow:0 2px 4px rgba(0,0,0,0.1);
-                        transition:0.2s;
-                        margin-top:10px;"
-                        onmouseover="this.style.backgroundColor='#A1D3EB'"
-                        onmouseout="this.style.backgroundColor='#B7E0F2'">
-                        🌐 지도에서 보기
-                      </button>
-                    </a>
-                </div>
+                <button onclick="window.open('{link}', '_blank');" style="
+                    background: rgba(199, 206, 255, 0.55);
+                    backdrop-filter: blur(6px);
+                    -webkit-backdrop-filter: blur(6px);
+                    color: white;
+                    border: 1px solid rgba(255, 255, 255, 0.3);
+                    padding: 10px 26px;
+                    border-radius: 12px;
+                    cursor: pointer;
+                    font-size: 16px;
+                    font-weight: 600;
+                    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+                    transition: all 0.3s ease;
+                    margin-top: 10px;
+                    transform: scale(1);
+                "
+                onmouseover="this.style.background='rgba(185, 192, 255, 0.75)';
+                             this.style.transform='scale(1.05)';
+                             this.style.boxShadow='0 8px 16px rgba(0,0,0,0.2)'"
+                onmouseout="this.style.background='rgba(199, 206, 255, 0.55)';
+                            this.style.transform='scale(1)';
+                            this.style.boxShadow='0 6px 12px rgba(0,0,0,0.15)'">
+                    지도에서 보기
+                </button>
                 """,
                 unsafe_allow_html=True,
             )
-            
-        # ✅ 버튼 아래 한 줄 띄우기
-        st.markdown("<br>", unsafe_allow_html=True)
     
+            # 버튼 클릭 시 toast 피드백
+            if st.button("지도에서 보기"):
+                st.toast("✅ 선택이 완료되었습니다!", icon="🎉")
+                time.sleep(0.3)
+                webbrowser.open_new_tab(link)
         # ───────────────────────────────
         # 페이지 이동 버튼
         # ───────────────────────────────
