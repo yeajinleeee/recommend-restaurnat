@@ -410,7 +410,7 @@ def main():
                     get_position=["lon", "lat"],
                     get_text="표시이름",
                     get_color=[60, 60, 60, 255],
-                    get_size=13,
+                    get_size=40,
                     get_alignment_baseline="'top'",
                 )
         
@@ -421,7 +421,7 @@ def main():
                     get_position=["lon", "lat"],
                     get_fill_color=[25, 25, 112, 255],   # 남색
                     get_line_color=[255, 255, 255, 255], # 흰색 테두리
-                    get_radius=90,
+                    get_radius=30,
                     line_width_min_pixels=2,
                     stroked=True,
                 )
