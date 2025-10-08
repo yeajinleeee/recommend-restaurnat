@@ -444,20 +444,20 @@ def main():
             else:
                 st.warning("지도에 표시할 음식점이 없습니다.")
 
-
+        # ───────────────────────────────
+        # 페이지 이동 버튼
+        # ───────────────────────────────
+        col1, col2 = st.columns([9, 1])
+        with col1:
+            if st.button("⬅ 이전"):
+                st.session_state.page = "page1"
+                st.rerun()
+        with col2:
+            if st.button("➡ 다음"):
+                st.session_state.page = "page3"
+                st.rerun()
         
-                # ───────────────────────────────
-                # 페이지 이동 버튼
-                # ───────────────────────────────
-                col1, col2 = st.columns([9, 1])
-                with col1:
-                    if st.button("⬅ 이전"):
-                        st.session_state.page = "page1"
-                        st.rerun()
-                with col2:
-                    if st.button("➡ 다음"):
-                        st.session_state.page = "page3"
-                        st.rerun()
+                
 
     # ───────────────────────────────
     # Page 3 : 최종 선택 + 상세 카드
