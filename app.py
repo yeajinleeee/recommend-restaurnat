@@ -518,6 +518,16 @@ def main():
         # ───────────────────────────────
         # 페이지 이동 버튼 (이전 / 선택 완료)
         # ───────────────────────────────
+        # CSS: 버튼 줄바꿈 방지 + 색상 유지
+        st.markdown("""
+            <style>
+            div[data-testid="stButton"] button {
+                min-width: 120px !important;
+                white-space: nowrap !important;
+            }
+            </style>
+        """, unsafe_allow_html=True)
+        
         col1, col2 = st.columns([9, 1])
         
         with col1:
@@ -527,10 +537,21 @@ def main():
         
         with col2:
             if st.button("✅ 선택 완료"):
-                st.markdown(
-                    "<p style='color:#2e7d32; font-weight:600; font-size:16px; margin-top:10px;'>🎉 선택이 완료되었습니다!</p>",
-                    unsafe_allow_html=True
-                )
+                # success 스타일의 한 줄 메시지 (Streamlit alert처럼 보이게)
+                st.markdown("""
+                    <div style="
+                        background-color:#e6f4ea;
+                        color:#1e4620;
+                        border:1px solid #b6dfb9;
+                        padding:10px 15px;
+                        border-radius:6px;
+                        font-size:16px;
+                        font-weight:500;
+                        margin-top:10px;
+                    ">
+                    🎉 ✅ 선택이 완료되었습니다!
+                    </div>
+                """, unsafe_allow_html=True)
                 time.sleep(1)
                 st.session_state.page = "page1"
                 st.rerun()
