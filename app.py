@@ -514,24 +514,22 @@ def main():
                 """,
                 unsafe_allow_html=True,
             )
-            
-            # 선택완료 버튼
-            st.markdown("<div style='text-align:center;'>", unsafe_allow_html=True)
-            if st.button("✅ 선택 완료", use_container_width=False):
-                st.success("✅ 선택이 완료되었습니다!", icon="🎉")
-            st.markdown("</div>", unsafe_allow_html=True)
 
     
         # ───────────────────────────────
-        # 페이지 이동 버튼
+        # 페이지 이동 버튼 (이전 / 선택 완료)
         # ───────────────────────────────
         col1, col2 = st.columns([9, 1])
+        
         with col1:
             if st.button("⬅ 이전"):
                 st.session_state.page = "page2"
                 st.rerun()
+        
         with col2:
-            if st.button("처음으로"):
+            if st.button("✅ 선택 완료"):
+                st.success("✅ 선택이 완료되었습니다!", icon="🎉")
+                time.sleep(0.8)
                 st.session_state.page = "page1"
                 st.rerun()
                 
