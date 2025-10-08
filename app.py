@@ -518,12 +518,27 @@ def main():
         # ───────────────────────────────
         # 페이지 이동 버튼 (이전 / 선택 완료)
         # ───────────────────────────────
-        # CSS: 버튼 줄바꿈 방지 + 색상 유지
+        # CSS: 버튼 줄바꿈 방지 + success 메시지 한 줄로 고정
         st.markdown("""
             <style>
             div[data-testid="stButton"] button {
                 min-width: 120px !important;
                 white-space: nowrap !important;
+            }
+        
+            /* success 박스 한 줄 고정 */
+            .custom-success {
+                background-color:#e6f4ea;
+                color:#1e4620;
+                border:1px solid #b6dfb9;
+                padding:10px 15px;
+                border-radius:6px;
+                font-size:16px;
+                font-weight:500;
+                margin-top:10px;
+                white-space: nowrap;          /* 한 줄 유지 */
+                display: inline-block;        /* 박스 크기 최소화 */
+                box-shadow: 0 1px 3px rgba(0,0,0,0.08);
             }
             </style>
         """, unsafe_allow_html=True)
@@ -537,21 +552,7 @@ def main():
         
         with col2:
             if st.button("✅ 선택 완료"):
-                # success 스타일의 한 줄 메시지 (Streamlit alert처럼 보이게)
-                st.markdown("""
-                    <div style="
-                        background-color:#e6f4ea;
-                        color:#1e4620;
-                        border:1px solid #b6dfb9;
-                        padding:10px 15px;
-                        border-radius:6px;
-                        font-size:16px;
-                        font-weight:500;
-                        margin-top:10px;
-                    ">
-                    🎉 ✅ 선택이 완료되었습니다!
-                    </div>
-                """, unsafe_allow_html=True)
+                st.markdown('<div class="custom-success">🎉 ✅ 선택이 완료되었습니다!</div>', unsafe_allow_html=True)
                 time.sleep(1)
                 st.session_state.page = "page1"
                 st.rerun()
