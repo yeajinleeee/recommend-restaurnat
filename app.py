@@ -494,7 +494,7 @@ def main():
                     {info_html}
                     <a href="{selected_row['map_link']}" target="_blank" style="text-decoration:none;">
                       <button style="
-                        background-color:#AAD1FF;
+                        background-color:#C1E5FF;
                         color:black;
                         border:none;
                         padding:10px 18px;
