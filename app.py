@@ -458,7 +458,8 @@ def main():
                     ),
                     unsafe_allow_html=True,
                 )
-    
+                
+            st.markdown("---")
             st.markdown("#### 최종으로 방문할 식당을 선택하세요 👇")
     
             # 식당 선택
@@ -479,7 +480,6 @@ def main():
             )
     
             # 카드형 정보 출력
-            st.markdown("---")
             st.markdown(
                 f"""
                 <div style="
@@ -514,6 +514,10 @@ def main():
                 """,
                 unsafe_allow_html=True,
             )
+            
+            # 완료 버튼 (Streamlit 기능)
+            if st.button("✅ 선택 완료"):
+                st.success("선택이 완료되었습니다!", icon="🎉")
     
         # ───────────────────────────────
         # 페이지 이동 버튼
