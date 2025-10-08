@@ -487,30 +487,40 @@ def main():
                     border:1px solid #e8e8e8;">
                     <h3 style="margin-bottom:5px;">🍴 {selected_row['이름']}</h3>
                     {info_html}
-                    <a href="{selected_row['map_link']}" target="_blank" style="text-decoration:none;">
-                      <button style="
-                        background-color:#C8E0FF;
-                        color:white;
-                        border:none;
-                        padding:10px 18px;
-                        border-radius:8px;
-                        cursor:pointer;
-                        font-size:16px;
-                        font-weight:500;
-                        box-shadow:0 2px 4px rgba(0,0,0,0.1);
-                        transition:0.2s;
-                        margin-top:10px;"
-                        onmouseover="this.style.backgroundColor='#5ec2e0'"
-                        onmouseout="this.style.backgroundColor='#87CEEB'">
-                        지도에서 보기
-                      </button>
-                    </a>
                     
-                    st.toast("✅ 선택이 완료되었습니다!", icon="🎉")
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+                    # 지도에서 보기 버튼 (Streamlit + 커스텀 CSS + Toast)
+                    link = selected_row.get("map_link", None)
+                    
+                    if link:
+                        # 버튼 전용 CSS (key 지정)
+                        st.markdown("""
+                            <style>
+                            div[data-testid="stButton"][key="map_btn"] > button {
+                                background-color: #C8E0FF;   /* 연파랑 */
+                                color: #000000;              /* 검정 글씨 */
+                                border: none;
+                                border-radius: 8px;
+                                padding: 10px 18px;
+                                font-weight: 600;
+                                font-size: 16px;
+                                box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+                                transition: all 0.2s ease;
+                            }
+                            div[data-testid="stButton"][key="map_btn"] > button:hover {
+                                background-color: #B5D6FF;   /* hover 시 더 진한 하늘색 */
+                                transform: scale(1.03);
+                            }
+                            </style>
+                        """, unsafe_allow_html=True)
+                    
+                        # 버튼 생성 (Streamlit 이벤트 감지 + toast)
+                        if st.button("지도에서 보기", key="map_btn"):
+                            st.toast("✅ 선택이 완료되었습니다!", icon="🎉")
+                            time.sleep(0.3)
+                            webbrowser.open_new_tab(link)
+                    else:
+                        st.warning("이 식당의 지도 링크가 없습니다.")
+
                         
         # ───────────────────────────────
         # 페이지 이동 버튼
