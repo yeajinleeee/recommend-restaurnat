@@ -524,18 +524,58 @@ def main():
             </style>
         """, unsafe_allow_html=True)
 
+        # ──────────────── 버튼 영역 ────────────────
+        # CSS (버튼 정렬 + 성공 메시지 스타일)
+        st.markdown("""
+            <style>
+            div[data-testid="stButton"] button {
+                min-width: 120px !important;
+                white-space: nowrap !important;
+            }
+        
+            .custom-success {
+                background-color:#e6f4ea;
+                color:#1e4620;
+                border:1px solid #b6dfb9;
+                padding:10px 15px;
+                border-radius:6px;
+                font-size:16px;
+                font-weight:500;
+                margin-top:12px;
+                white-space: nowrap;
+                display:inline-block;
+                box-shadow:0 1px 3px rgba(0,0,0,0.08);
+            }
+        
+            /* 오른쪽 정렬용 wrapper */
+            .right-wrapper {
+                display:flex;
+                justify-content:flex-end;
+                width:100%;
+            }
+            </style>
+        """, unsafe_allow_html=True)
+        
+        
+        # 버튼 두 개 (이전 / 선택 완료)
         col1, col2 = st.columns([9, 1])
+        
         with col1:
             if st.button("⬅ 이전"):
                 st.session_state.page = "page2"
                 st.rerun()
+        
         with col2:
             if st.button("✅ 선택 완료"):
-                st.markdown("<div class='custom-success'>🎉 ✅ 선택이 완료되었습니다!</div>", unsafe_allow_html=True)
+                # 🎉 오른쪽 정렬된 success 박스 출력
+                st.markdown("""
+                    <div class="right-wrapper">
+                        <div class="custom-success">🎉 ✅ 선택이 완료되었습니다!</div>
+                    </div>
+                """, unsafe_allow_html=True)
                 time.sleep(1)
                 st.session_state.page = "page1"
                 st.rerun()
-
 
 if __name__ == "__main__":
     main()
