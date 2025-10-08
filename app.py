@@ -370,9 +370,9 @@ def main():
                 st.dataframe(df[["이름", "리뷰 수"]], use_container_width=True, height=420)
     
         # ───────────────────────────────
-        # 지도 탭 (수저포크 이모지 + 이름 + 내 위치)
+        # Page 2 : 지도 탭 (3번째 탭)
         # ───────────────────────────────
-       with tabs[3]:
+        with tabs[3]:
             if not filtered.empty:
                 df_map = filtered.rename(columns={"latitude": "lat", "longitude": "lon"}).copy()
                 df_map["표시이름"] = df_map["name_g"] if "name_g" in df_map.columns else df_map["이름"]
@@ -389,6 +389,9 @@ def main():
                     "anchorY": 512,  # 아이콘의 아래쪽이 위치를 기준으로 오도록 설정
                 }
         
+                # 아이콘 데이터 추가
+                df_map["icon_data"] = [icon_data] * len(df_map)
+        
                 # 🍴 음식점 레이어 (아이콘)
                 icon_layer = pdk.Layer(
                     "IconLayer",
@@ -398,11 +401,7 @@ def main():
                     get_size=3,  # 아이콘 크기 (조절 가능)
                     size_scale=8,
                     pickable=True,
-                    tooltip=True,
                 )
-        
-                # 아이콘 데이터 적용
-                df_map["icon_data"] = [icon_data] * len(df_map)
         
                 # 🏷️ 음식점 이름 레이어
                 name_layer = pdk.Layer(
