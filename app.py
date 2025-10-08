@@ -399,11 +399,21 @@ def main():
                     get_icon="icon_data",
                     get_position=["lon", "lat"],
                     get_size=3,  # 아이콘 크기 (조절 가능)
-                    size_scale=8,
+                    size_scale=30,
                     pickable=True,
                 )
         
-        
+                # 🏷️ 음식점 이름 레이어
+                name_layer = pdk.Layer(
+                    "TextLayer",
+                    data=df_map,
+                    get_position=["lon", "lat"],
+                    get_text="표시이름",
+                    get_color=[60, 60, 60, 255],
+                    get_size=0,
+                    get_alignment_baseline="'top'",
+                )
+                
                 # 💙 내 위치 (남색 점 + 흰색 테두리)
                 me_layer = pdk.Layer(
                     "ScatterplotLayer",
