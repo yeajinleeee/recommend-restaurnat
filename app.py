@@ -414,7 +414,7 @@ def main():
         choice = st.session_state.get("choice")
         filtered_df = filter_by_category_tf(all_df, choice)
     
-        # 2페이지에서 선택한 업태 반영
+        # ✅ 2페이지에서 선택한 업태 반영
         selected_types = st.session_state.get("selected_types", [])
         if selected_types:
             filtered_df = filtered_df[filtered_df["category"].isin(selected_types)]
@@ -425,7 +425,7 @@ def main():
             df = prettify_dataframe(filtered_df).copy()
             df = df.reset_index(drop=True)
     
-            # 오늘의 분위기: 연한 빨강 배경 태그 스타일
+            # 🎨 오늘의 분위기 (연한 빨강 배경)
             st.markdown(
                 f"""
                 <div style="margin-bottom:8px;">
@@ -446,7 +446,7 @@ def main():
                 unsafe_allow_html=True,
             )
     
-            # 선택한 업태: 연한 파랑 배경 태그 스타일
+            # 🏷️ 선택한 업태 (연한 파랑 배경)
             if selected_types:
                 st.markdown(
                     "<b>선택한 업태:</b> " + " · ".join(
@@ -457,7 +457,7 @@ def main():
     
             st.markdown("#### 최종으로 방문할 식당을 선택하세요 👇")
     
-            # 식당 선택
+            # ✅ 식당 선택
             selected_name = st.selectbox("식당 선택", df["이름"])
             selected_row = df[df["이름"] == selected_name].iloc[0]
     
@@ -474,7 +474,7 @@ def main():
                 info_line("🏠", "주소", selected_row.get("주소"))
             )
     
-            # 카드형 정보 출력
+            # 🍽️ 카드형 정보 출력
             st.markdown("---")
             st.markdown(
                 f"""
@@ -488,33 +488,36 @@ def main():
                     border:1px solid #e8e8e8;">
                     <h3 style="margin-bottom:5px;">🍴 {selected_row['이름']}</h3>
                     {info_html}
-                    <a href="{selected_row['map_link']}" target="_blank" style="text-decoration:none;">
-                      <button style="
-                        background-color:#d8ecff;
-                        color:white;
-                        border:none;
-                        padding:10px 18px;
-                        border-radius:8px;
-                        cursor:pointer;
-                        font-size:16px;
-                        font-weight:500;
-                        box-shadow:0 2px 4px rgba(0,0,0,0.1);
-                        transition:0.2s;
-                        margin-top:10px;"
-                        onmouseover="this.style.backgroundColor='#5ec2e0'"
-                        onmouseout="this.style.backgroundColor='#87CEEB'">
-                        지도에서 보기
-                      </button>
-                    </a>
-                    <!-- 누르면 바로 아래 표시되는 간단 안내 -->
-                    <p style="color:#4a4a4a; font-size:14px; margin-top:8px;">
-                      ✅ 선택이 완료되었습니다!
-                    </p>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
-
+    
+            # 🌐 지도에서 보기 버튼 (Streamlit 기본 버튼 + 연파랑)
+            st.markdown("""
+            <style>
+            div[data-testid="stButton"][key="map_btn"] > button {
+                background-color: #d8ecff;  /* 연파랑 */
+                color: black;
+                border: none;
+                border-radius: 8px;
+                padding: 10px 18px;
+                font-weight: 600;
+                font-size: 16px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                transition: 0.2s;
+            }
+            div[data-testid="stButton"][key="map_btn"] > button:hover {
+                background-color: #b9ddff;  /* hover 시 더 진한 하늘색 */
+            }
+            </style>
+            """, unsafe_allow_html=True)
+    
+            import webbrowser
+            if st.button("🌐 지도에서 보기", key="map_btn"):
+                webbrowser.open_new_tab(selected_row["map_link"])
+                st.success("✅ 선택이 완료되었습니다!", icon="🎉")
+    
         # ───────────────────────────────
         # 페이지 이동 버튼
         # ───────────────────────────────
@@ -527,7 +530,6 @@ def main():
             if st.button("처음으로"):
                 st.session_state.page = "page1"
                 st.rerun()
-
                 
                 
 if __name__ == "__main__":
