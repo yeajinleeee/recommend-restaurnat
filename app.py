@@ -413,7 +413,7 @@ def main():
                     get_size=13,
                     get_alignment_baseline="'top'",
                 )
-                
+        
                 # 💙 내 위치 (남색 점 + 흰색 테두리)
                 me_layer = pdk.Layer(
                     "ScatterplotLayer",
@@ -443,6 +443,7 @@ def main():
         
             else:
                 st.warning("지도에 표시할 음식점이 없습니다.")
+
 
         
                 # ───────────────────────────────
