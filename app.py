@@ -23,12 +23,13 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 OPENWEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
 
 st.set_page_config(
-    page_title="날씨 + 위치 기반 음식점 추천",
+    page_title="날씨와 위치 기반 맛집 추천 서비스",
     page_icon="🍜",
     layout="wide"
 )
 
-st.title("날씨 + 위치 기반 음식점 추천 🌨️")
+st.title("오늘, 내 주변 날씨에 어울리는 맛집 추천 🌨️")
+st.caption("현재 위치와 날씨 데이터를 기반으로 지금 가장 어울리는 음식점을 찾아드릴게요.")
 
 # ───────────────────────────────
 # 1. 유틸
@@ -369,28 +370,67 @@ def main():
                 st.dataframe(df[["이름", "리뷰 수"]], use_container_width=True, height=420)
     
         # ───────────────────────────────
-        # 지도 탭
+        # 지도 탭 (가게명 + 내 위치 표시)
         # ───────────────────────────────
         with tabs[3]:
             if not filtered.empty:
                 df_map = filtered.rename(columns={"latitude": "lat", "longitude": "lon"}).copy()
+                
+                # 내 위치 데이터프레임
+                me_df = pd.DataFrame([{"lat": user_lat, "lon": user_lon}])
+                
+                # 가게 아이콘 데이터 정의
+                icon_data = {
+                    "url": "https://cdn-icons-png.flaticon.com/512/3075/3075977.png",  # 음식 아이콘
+                    "width": 128,
+                    "height": 128,
+                    "anchorY": 128,
+                }
+                df_map["icon_data"] = [icon_data for _ in range(len(df_map))]
+                
+                # 🍜 음식점 아이콘 레이어
+                icon_layer = pdk.Layer(
+                    "IconLayer",
+                    data=df_map,
+                    get_icon="icon_data",
+                    get_position=["lon", "lat"],
+                    get_size=4,
+                    size_scale=8,
+                    pickable=True,
+                )
+                
+                # 📍 내 위치 표시 (파란 점)
+                me_layer = pdk.Layer(
+                    "ScatterplotLayer",
+                    data=me_df,
+                    get_position=["lon", "lat"],
+                    get_color=[0, 102, 255, 200],
+                    get_radius=70,
+                )
+                
+                # 🍴 가게 이름 텍스트 표시
+                text_layer = pdk.Layer(
+                    "TextLayer",
+                    data=df_map,
+                    get_position=["lon", "lat"],
+                    get_text="name_g" if "name_g" in df_map.columns else "이름",
+                    get_color=[0, 0, 0, 255],
+                    get_size=14,
+                    get_alignment_baseline="'top'",
+                )
+                
+                # pydeck 설정
                 st.pydeck_chart(
                     pdk.Deck(
                         map_provider="maplibre",
                         map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
                         initial_view_state=pdk.ViewState(latitude=user_lat, longitude=user_lon, zoom=15),
-                        layers=[
-                            pdk.Layer(
-                                "ScatterplotLayer",
-                                data=df_map,
-                                get_position="[lon, lat]",
-                                get_radius=60,
-                                get_fill_color=[255, 0, 0, 160],
-                                pickable=True,
-                            )
-                        ],
+                        layers=[icon_layer, text_layer, me_layer],
+                        tooltip={"text": "{이름}"}
                     )
                 )
+            else:
+                st.warning("지도에 표시할 음식점이 없습니다.")
     
         # ───────────────────────────────
         # 페이지 이동 버튼
