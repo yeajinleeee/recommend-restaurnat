@@ -380,7 +380,7 @@ def main():
                 # 내 위치 데이터프레임
                 me_df = pd.DataFrame([{"lat": user_lat, "lon": user_lon}])
         
-                # 🍴 음식점 아이콘 (Flaticon PNG 사용)
+                # 음식점 아이콘 (Flaticon PNG 사용)
                 icon_url = "https://cdn-icons-png.flaticon.com/512/11448/11448259.png"
                 icon_data = {
                     "url": icon_url,
@@ -392,18 +392,18 @@ def main():
                 # 아이콘 데이터 추가
                 df_map["icon_data"] = [icon_data] * len(df_map)
         
-                # 🍴 음식점 레이어 (아이콘)
+                # 음식점 레이어 (아이콘)
                 icon_layer = pdk.Layer(
                     "IconLayer",
                     data=df_map,
                     get_icon="icon_data",
                     get_position=["lon", "lat"],
-                    get_size=3,  # 아이콘 크기 (조절 가능)
+                    get_size=5,  # 아이콘 크기 (조절 가능)
                     size_scale=8,
                     pickable=True,
                 )
         
-                # 🏷️ 음식점 이름 레이어
+                # 음식점 이름 레이어
                 name_layer = pdk.Layer(
                     "TextLayer",
                     data=df_map,
@@ -414,14 +414,14 @@ def main():
                     get_alignment_baseline="'top'",
                 )
         
-                # 💙 내 위치 (남색 점 + 흰색 테두리)
+                # 내 위치 (남색 점 + 흰색 테두리)
                 me_layer = pdk.Layer(
                     "ScatterplotLayer",
                     data=me_df,
                     get_position=["lon", "lat"],
                     get_fill_color=[25, 25, 112, 255],   # 남색
                     get_line_color=[255, 255, 255, 255], # 흰색 테두리
-                    get_radius=30,
+                    get_radius=40,
                     line_width_min_pixels=2,
                     stroked=True,
                 )
