@@ -421,10 +421,9 @@ def main():
         if filtered_df.empty:
             st.warning("선택 가능한 식당이 없습니다. 2페이지에서 다시 선택해주세요.")
         else:
-            df = prettify_dataframe(filtered_df).copy()
-            df = df.reset_index(drop=True)
+            df = prettify_dataframe(filtered_df).copy().reset_index(drop=True)
     
-            # 오늘의 분위기: 연한 빨강 배경 태그 스타일
+            # 오늘의 분위기 (연한 빨강 태그)
             st.markdown(
                 f"""
                 <div style="margin-bottom:8px;">
@@ -436,8 +435,7 @@ def main():
                       border-radius:8px;
                       margin-left:8px;
                       font-size:18px;
-                      font-weight:600;
-                      ">
+                      font-weight:600;">
                       {choice}
                   </span>
                 </div>
@@ -445,7 +443,7 @@ def main():
                 unsafe_allow_html=True,
             )
     
-            # 선택한 업태: 연한 파랑 배경 태그 스타일
+            # 선택한 업태 (연한 파랑 태그)
             if selected_types:
                 st.markdown(
                     "<b>선택한 업태:</b> " + " · ".join(
@@ -460,7 +458,7 @@ def main():
             selected_name = st.selectbox("식당 선택", df["이름"])
             selected_row = df[df["이름"] == selected_name].iloc[0]
     
-            # 카드 정보 표시
+            # 카드 정보 표시 함수
             def info_line(icon, label, value):
                 if value not in [None, "", "nan", "정보 없음"]:
                     return f"<p style='margin:5px 0;'>{icon} <b>{label}:</b> {value}</p>"
@@ -483,44 +481,45 @@ def main():
                     box-shadow:0 2px 10px rgba(0,0,0,0.1);
                     padding:20px;
                     margin-top:10px;
-                    margin-bottom:20px;
+                    margin-bottom:10px;
                     border:1px solid #e8e8e8;">
                     <h3 style="margin-bottom:5px;">🍴 {selected_row['이름']}</h3>
                     {info_html}
-                    
-                    # 지도에서 보기 버튼 (Streamlit + 커스텀 CSS + Toast)
-                    link = selected_row.get("map_link", None)
-                    
-                    if link:
-                        # 버튼 전용 CSS (key 지정)
-                        st.markdown("""
-                            <style>
-                            div[data-testid='stButton'][key='map_btn'] > button {
-                                background-color: #C8E0FF;   /* 연파랑 */
-                                color: #000000;              /* 검정 글씨 */
-                                border: none;
-                                border-radius: 8px;
-                                padding: 10px 18px;
-                                font-weight: 600;
-                                font-size: 16px;
-                                box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-                                transition: all 0.2s ease;
-                            }
-                            div[data-testid='stButton'][key='map_btn'] > button:hover {
-                                background-color: #B5D6FF;   /* hover 시 더 진한 하늘색 */
-                                transform: scale(1.03);
-                            }
-                            </style>
-                        """, unsafe_allow_html=True)
-                    
-                        # 버튼 생성 (Streamlit 이벤트 감지 + toast)
-                        if st.button("지도에서 보기", key="map_btn"):
-                            st.toast("✅ 선택이 완료되었습니다!", icon="🎉")
-                            time.sleep(0.3)
-                            webbrowser.open_new_tab(link)
-                    else:
-                        st.warning("이 식당의 지도 링크가 없습니다.")
-
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+    
+            # 지도 보기 버튼 (Streamlit + 커스텀 CSS + Toast)
+            link = selected_row.get("map_link", None)
+            if link:
+                # 버튼 전용 CSS (key 지정)
+                st.markdown("""
+    <style>
+    div[data-testid='stButton'][key='map_btn'] > button {
+        background-color: #C8E0FF;   /* 연파랑 */
+        color: #000000;              /* 검정 글씨 */
+        border: none;
+        border-radius: 8px;
+        padding: 10px 18px;
+        font-weight: 600;
+        font-size: 16px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        transition: all 0.2s ease;
+    }
+    div[data-testid='stButton'][key='map_btn'] > button:hover {
+        background-color: #B5D6FF;   /* hover 시 진한 하늘색 */
+        transform: scale(1.03);
+    }
+    </style>
+                """, unsafe_allow_html=True)
+    
+                if st.button("지도에서 보기", key="map_btn"):
+                    st.toast("✅ 선택이 완료되었습니다!", icon="🎉")
+                    time.sleep(0.3)
+                    webbrowser.open_new_tab(link)
+            else:
+                st.warning("이 식당의 지도 링크가 없습니다.")
                         
         # ───────────────────────────────
         # 페이지 이동 버튼
