@@ -409,14 +409,12 @@ def main():
     # Page 3 : 최종 선택 + 상세 카드
     # ───────────────────────────────
     elif st.session_state.page == "page3":
-        import streamlit.components.v1 as components
-    
         st.header("최종 선택")
     
         choice = st.session_state.get("choice")
         filtered_df = filter_by_category_tf(all_df, choice)
     
-        # ✅ 2페이지에서 선택한 업태 반영
+        # 2페이지에서 선택한 업태 반영
         selected_types = st.session_state.get("selected_types", [])
         if selected_types:
             filtered_df = filtered_df[filtered_df["category"].isin(selected_types)]
@@ -427,7 +425,7 @@ def main():
             df = prettify_dataframe(filtered_df).copy()
             df = df.reset_index(drop=True)
     
-            # 🎨 오늘의 분위기 (연한 빨강 배경)
+            # 오늘의 분위기: 연한 빨강 배경 태그 스타일
             st.markdown(
                 f"""
                 <div style="margin-bottom:8px;">
@@ -448,35 +446,39 @@ def main():
                 unsafe_allow_html=True,
             )
     
-            # 🏷️ 선택한 업태 (연한 파랑 배경)
+            # 선택한 업태: 연한 파랑 배경 태그 스타일
             if selected_types:
                 st.markdown(
                     "<b>선택한 업태:</b> " + " · ".join(
-                        [f"<span style='background:#e8f5ff; padding:3px 8px; border-radius:6px; margin-right:4px;'>{t}</span>"
-                         for t in selected_types]),
+                        [
+                            f"<span style='background:#e8f5ff; padding:3px 8px; "
+                            f"border-radius:6px; margin-right:4px;'>{t}</span>"
+                            for t in selected_types
+                        ]
+                    ),
                     unsafe_allow_html=True,
                 )
     
             st.markdown("#### 최종으로 방문할 식당을 선택하세요 👇")
     
-            # ✅ 식당 선택
+            # 식당 선택
             selected_name = st.selectbox("식당 선택", df["이름"])
             selected_row = df[df["이름"] == selected_name].iloc[0]
     
-            # 카드 정보 표시 함수
+            # 카드 정보 표시
             def info_line(icon, label, value):
                 if value not in [None, "", "nan", "정보 없음"]:
                     return f"<p style='margin:5px 0;'>{icon} <b>{label}:</b> {value}</p>"
                 return ""
     
             info_html = (
-                info_line("📍", "거리", selected_row.get("거리")) +
-                info_line("⭐", "별점", selected_row.get("별점")) +
-                info_line("💬", "리뷰 수", selected_row.get("리뷰 수")) +
-                info_line("🏠", "주소", selected_row.get("주소"))
+                info_line("📍", "거리", selected_row.get("거리"))
+                + info_line("⭐", "별점", selected_row.get("별점"))
+                + info_line("💬", "리뷰 수", selected_row.get("리뷰 수"))
+                + info_line("🏠", "주소", selected_row.get("주소"))
             )
     
-            # 🍽️ 카드형 정보 출력
+            # 카드형 정보 출력
             st.markdown("---")
             st.markdown(
                 f"""
@@ -490,66 +492,29 @@ def main():
                     border:1px solid #e8e8e8;">
                     <h3 style="margin-bottom:5px;">🍴 {selected_row['이름']}</h3>
                     {info_html}
+    
+                    <a href="{selected_row['map_link']}" target="_blank" style="text-decoration:none;">
+                      <button style="
+                        background-color:#d8ecff;
+                        color:white;
+                        border:none;
+                        padding:10px 18px;
+                        border-radius:8px;
+                        cursor:pointer;
+                        font-size:16px;
+                        font-weight:500;
+                        box-shadow:0 2px 4px rgba(0,0,0,0.1);
+                        transition:0.2s;
+                        margin-top:10px;"
+                        onmouseover="this.style.backgroundColor='#5ec2e0'"
+                        onmouseout="this.style.backgroundColor='#87CEEB'">
+                        지도에서 보기
+                      </button>
+                    </a>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
-    
-            # 🌐 버튼 스타일 정의
-            st.markdown("""
-            <style>
-            div[data-testid="stButton"][key="map_btn"] > button {
-                background-color: #d8ecff;
-                color: black;
-                border: none;
-                border-radius: 8px;
-                padding: 10px 18px;
-                font-weight: 600;
-                font-size: 16px;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                transition: 0.2s;
-            }
-            div[data-testid="stButton"][key="map_btn"] > button:hover {
-                background-color: #b9ddff;
-                transform: scale(1.02);
-            }
-            </style>
-            """, unsafe_allow_html=True)
-    
-            # ✅ 버튼 이벤트 (rerun 없이 JS로 처리)
-            if st.button("🌐 지도에서 보기", key="map_btn"):
-                components.html(f"""
-                    <script>
-                    // 지도 새 탭 열기
-                    window.open("{selected_row['map_link']}", "_blank");
-    
-                    // ✅ Toast 생성
-                    const toast = document.createElement("div");
-                    toast.innerText = "✅ 선택이 완료되었습니다!";
-                    toast.style.position = "fixed";
-                    toast.style.left = "50%";
-                    toast.style.bottom = "60px";
-                    toast.style.transform = "translateX(-50%)";
-                    toast.style.background = "#e8fff2";
-                    toast.style.color = "#2e7d32";
-                    toast.style.padding = "12px 18px";
-                    toast.style.borderRadius = "8px";
-                    toast.style.fontSize = "16px";
-                    toast.style.boxShadow = "0 2px 8px rgba(0,0,0,0.15)";
-                    toast.style.opacity = "0";
-                    toast.style.transition = "opacity 0.3s ease";
-                    document.body.appendChild(toast);
-    
-                    // Fade-in
-                    setTimeout(() => {{ toast.style.opacity = "1"; }}, 100);
-    
-                    // Fade-out 후 제거
-                    setTimeout(() => {{
-                        toast.style.opacity = "0";
-                        setTimeout(() => toast.remove(), 400);
-                    }}, 800);
-                    </script>
-                """, height=0)
     
         # ───────────────────────────────
         # 페이지 이동 버튼
@@ -563,6 +528,7 @@ def main():
             if st.button("처음으로"):
                 st.session_state.page = "page1"
                 st.rerun()
+
 
                 
                 
