@@ -370,68 +370,62 @@ def main():
                 st.dataframe(df[["이름", "리뷰 수"]], use_container_width=True, height=420)
     
         # ───────────────────────────────
-        # 지도 탭 (가게명 + 내 위치 표시)
+        # 지도 탭 (수저포크 이모지 + 이름 + 내 위치)
         # ───────────────────────────────
         with tabs[3]:
             if not filtered.empty:
                 df_map = filtered.rename(columns={"latitude": "lat", "longitude": "lon"}).copy()
-                
+                df_map["표시이름"] = df_map["name_g"] if "name_g" in df_map.columns else df_map["이름"]
+    
                 # 내 위치 데이터프레임
                 me_df = pd.DataFrame([{"lat": user_lat, "lon": user_lon}])
-                
-                # 가게 아이콘 데이터 정의
-                icon_data = {
-                    "url": "https://cdn-icons-png.flaticon.com/512/3075/3075977.png",  # 음식 아이콘
-                    "width": 128,
-                    "height": 128,
-                    "anchorY": 128,
-                }
-                df_map["icon_data"] = [icon_data for _ in range(len(df_map))]
-                
-                # 🍜 음식점 아이콘 레이어
-                icon_layer = pdk.Layer(
-                    "IconLayer",
-                    data=df_map,
-                    get_icon="icon_data",
-                    get_position=["lon", "lat"],
-                    get_size=4,
-                    size_scale=8,
-                    pickable=True,
-                )
-                
-                # 📍 내 위치 표시 (파란 점)
-                me_layer = pdk.Layer(
-                    "ScatterplotLayer",
-                    data=me_df,
-                    get_position=["lon", "lat"],
-                    get_color=[0, 102, 255, 200],
-                    get_radius=70,
-                )
-                
-                # 🍴 가게 이름 텍스트 표시
-                text_layer = pdk.Layer(
+    
+                # 🍴 가게 위치 (TextLayer로 수저포크 이모지 표시)
+                emoji_layer = pdk.Layer(
                     "TextLayer",
                     data=df_map,
                     get_position=["lon", "lat"],
-                    get_text="name_g" if "name_g" in df_map.columns else "이름",
+                    get_text="🍴",
+                    get_color=[255, 99, 71, 230],  # 살짝 토마토색
+                    get_size=20,
+                    get_alignment_baseline="'bottom'",
+                )
+    
+                # 🍴 가게 이름 표시
+                name_layer = pdk.Layer(
+                    "TextLayer",
+                    data=df_map,
+                    get_position=["lon", "lat"],
+                    get_text="표시이름",
                     get_color=[0, 0, 0, 255],
                     get_size=14,
                     get_alignment_baseline="'top'",
                 )
-                
+    
+                # 📍 내 위치 (파란 점)
+                me_layer = pdk.Layer(
+                    "ScatterplotLayer",
+                    data=me_df,
+                    get_position=["lon", "lat"],
+                    get_color=[30, 144, 255, 220],
+                    get_radius=40,
+                )
+    
                 # pydeck 설정
                 st.pydeck_chart(
                     pdk.Deck(
                         map_provider="maplibre",
                         map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
-                        initial_view_state=pdk.ViewState(latitude=user_lat, longitude=user_lon, zoom=15),
-                        layers=[icon_layer, text_layer, me_layer],
-                        tooltip={"text": "{이름}"}
+                        initial_view_state=pdk.ViewState(
+                            latitude=user_lat, longitude=user_lon, zoom=15
+                        ),
+                        layers=[emoji_layer, name_layer, me_layer],
+                        tooltip={"text": "{표시이름}"},
                     )
                 )
             else:
                 st.warning("지도에 표시할 음식점이 없습니다.")
-    
+
         # ───────────────────────────────
         # 페이지 이동 버튼
         # ───────────────────────────────
