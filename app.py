@@ -9,6 +9,8 @@ import pydeck as pdk
 from haversine import haversine
 from typing import List, Tuple
 import re
+import time
+import webbrowser
 
 # ───────────────────────────────
 # 0. 환경 설정
@@ -516,7 +518,6 @@ def main():
     
                 if st.button("지도에서 보기", key="map_btn"):
                     st.toast("✅ 선택이 완료되었습니다!", icon="🎉")
-                    time.sleep(0.3)
                     webbrowser.open_new_tab(link)
             else:
                 st.warning("이 식당의 지도 링크가 없습니다.")
