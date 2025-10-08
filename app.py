@@ -14,8 +14,12 @@ import re
 # 0. 환경 설정
 # ───────────────────────────────
 load_dotenv()
+
 SUPABASE_URL: str = os.getenv("SUPABASE_URL")
 SUPABASE_KEY: str = os.getenv("SUPABASE_API_KEY")
+OPENWEATHER_API_KEY: str = os.getenv("WEATHER_API_KEY")
+
+# Supabase 클라이언트 생성 (실패 시 오류 메시지)
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 OPENWEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
 
@@ -51,16 +55,24 @@ def _normalize_label(s: str) -> str:
     return re.sub(r"[\s/_\-()]+", "", s)
 
 def coerce_tf_bool(frame: pd.DataFrame) -> pd.DataFrame:
+    """
+    TRUE/FALSE/1/0/빈값 등 문자열 기반 TF 컬럼을 실제 bool로 변환.
+    - 각 컬럼에 대해 값의 80% 이상이 TF 패턴일 때만 변환(오검 방지)
+    """
     for col in frame.columns:
         if frame[col].dtype is bool:
             continue
         if frame[col].dtype == object:
             vals = frame[col].astype(str).str.strip().str.upper()
-            if vals.isin(["TRUE","FALSE","1","0","", "NAN"]).mean() > 0.8:
+            if vals.isin(["TRUE", "FALSE", "1", "0", "", "NAN"]).mean() > 0.8:
                 frame[col] = vals.map({"TRUE": True, "FALSE": False, "1": True, "0": False}).fillna(False)
     return frame
 
 def resolve_tf_column(frame: pd.DataFrame, expected_label: str) -> str | None:
+    """
+    기대 라벨(카테고리) → 실제 컬럼명 매칭.
+    1) 표준화 일치 → 2) 정규화 일치 → 3) 부분 포함
+    """
     expected = norm_cat(expected_label)
     if expected in frame.columns:
         return expected
@@ -133,12 +145,14 @@ WX_RECO = {
 }
 
 def weather_group_from_id(weather_id: int) -> str:
+    """OpenWeather weather.id를 내부 그룹명으로 변환."""
     for group_name, codes in WX_GROUPS.items():
         if int(weather_id) in codes:
             return group_name
     return "구름"
 
 def recommended_categories_from_group(group_name: str, top_k: int | None = None):
+    """그룹별 추천 카테고리/분위기 반환 (top_k 제공 시 상위 K개만)."""
     cats = [norm_cat(c) for c in WX_RECO[group_name]["cats"]]
     mood = WX_RECO[group_name]["mood"]
     return (cats, mood) if top_k is None else (cats[:top_k], mood)
@@ -180,6 +194,10 @@ def get_restaurant_within_500m_from_supabase(lat: float, lon: float):
 # 4. 필터링
 # ───────────────────────────────
 def filter_by_category_tf(frame: pd.DataFrame, theme: str) -> pd.DataFrame:
+    """
+    사용자가 고른 단일 카테고리(theme)에 해당하는 TF 컬럼이 True인 행만 필터.
+    - 거리 제공 시 distance_m 오름차순 정렬
+    """
     if frame is None or frame.empty:
         return pd.DataFrame()
     frame = coerce_tf_bool(frame)
