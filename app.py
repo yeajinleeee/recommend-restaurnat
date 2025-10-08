@@ -518,7 +518,7 @@ def main():
         # ───────────────────────────────
         # 페이지 이동 버튼 (이전 / 선택 완료)
         # ───────────────────────────────
-        # CSS: 버튼 줄바꿈 방지 + success 메시지 한 줄로 고정
+        # CSS: 버튼 줄바꿈 방지 + success 박스 한 줄 + 중앙 정렬
         st.markdown("""
             <style>
             div[data-testid="stButton"] button {
@@ -526,7 +526,6 @@ def main():
                 white-space: nowrap !important;
             }
         
-            /* success 박스 한 줄 고정 */
             .custom-success {
                 background-color:#e6f4ea;
                 color:#1e4620;
@@ -535,14 +534,23 @@ def main():
                 border-radius:6px;
                 font-size:16px;
                 font-weight:500;
-                margin-top:10px;
-                white-space: nowrap;          /* 한 줄 유지 */
-                display: inline-block;        /* 박스 크기 최소화 */
+                margin-top:15px;
+                white-space: nowrap;
+                display: inline-block;
                 box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            }
+        
+            /* 중앙 정렬용 wrapper */
+            .center-wrapper {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                width: 100%;
             }
             </style>
         """, unsafe_allow_html=True)
         
+        # ──────────────── 버튼 영역 ────────────────
         col1, col2 = st.columns([9, 1])
         
         with col1:
@@ -552,7 +560,12 @@ def main():
         
         with col2:
             if st.button("✅ 선택 완료"):
-                st.markdown('<div class="custom-success">🎉 ✅ 선택이 완료되었습니다!</div>', unsafe_allow_html=True)
+                # 🎉 중앙 정렬 success 박스
+                st.markdown("""
+                    <div class="center-wrapper">
+                        <div class="custom-success">🎉 ✅ 선택이 완료되었습니다!</div>
+                    </div>
+                """, unsafe_allow_html=True)
                 time.sleep(1)
                 st.session_state.page = "page1"
                 st.rerun()
