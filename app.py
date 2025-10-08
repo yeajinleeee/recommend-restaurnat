@@ -495,7 +495,7 @@ def main():
                         # 버튼 전용 CSS (key 지정)
                         st.markdown("""
                             <style>
-                            div[data-testid="stButton"][key="map_btn"] > button {
+                            div[data-testid='stButton'][key='map_btn'] > button {
                                 background-color: #C8E0FF;   /* 연파랑 */
                                 color: #000000;              /* 검정 글씨 */
                                 border: none;
@@ -506,7 +506,7 @@ def main():
                                 box-shadow: 0 2px 6px rgba(0,0,0,0.1);
                                 transition: all 0.2s ease;
                             }
-                            div[data-testid="stButton"][key="map_btn"] > button:hover {
+                            div[data-testid='stButton'][key='map_btn'] > button:hover {
                                 background-color: #B5D6FF;   /* hover 시 더 진한 하늘색 */
                                 transform: scale(1.03);
                             }
