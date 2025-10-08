@@ -374,65 +374,55 @@ def main():
         # ───────────────────────────────
         with tabs[3]:
             if not filtered.empty:
-                # 위경도 정리
+                # 위경도 컬럼 통일
                 df_map = filtered.rename(columns={"latitude": "lat", "longitude": "lon"}).copy()
                 df_map["표시이름"] = df_map["name_g"] if "name_g" in df_map.columns else df_map["이름"]
         
-                # 내 위치 데이터
+                # 내 위치 데이터프레임
                 me_df = pd.DataFrame([{"lat": user_lat, "lon": user_lon}])
         
-                # 🍴 Flaticon 수저 아이콘
+                # 🍼 아기 수저 아이콘 (투명 배경 PNG)
                 icon_data = {
-                    "url": "https://cdn-icons-png.flaticon.com/512/17300/17300324.png",  # 혜민님 아이콘
+                    "url": "https://cdn-icons-png.flaticon.com/512/11448/11448259.png",  # baby cutlery 아이콘
                     "width": 512,
                     "height": 512,
                     "anchorY": 512,
                 }
                 df_map["icon_data"] = [icon_data for _ in range(len(df_map))]
         
-                # 🟢 배경 원 (연한 파스텔톤)
-                bg_layer = pdk.Layer(
-                    "ScatterplotLayer",
-                    data=df_map,
-                    get_position=["lon", "lat"],
-                    get_radius=55,  # 배경 원 크기
-                    get_fill_color=[240, 248, 255, 180],  # 연하늘색 (혜민님 감성톤)
-                    stroke=False,
-                )
-        
-                # 🍴 아이콘 레이어
+                # 🍴 아이콘 표시 레이어
                 icon_layer = pdk.Layer(
                     "IconLayer",
                     data=df_map,
                     get_icon="icon_data",
                     get_position=["lon", "lat"],
-                    get_size=4,
-                    size_scale=6,
+                    get_size=5,
+                    size_scale=7,
                     pickable=True,
                 )
         
-                # 🏷️ 이름 레이어
+                # 🍽️ 가게 이름 텍스트 레이어
                 name_layer = pdk.Layer(
                     "TextLayer",
                     data=df_map,
                     get_position=["lon", "lat"],
                     get_text="표시이름",
-                    get_color=[40, 40, 40, 230],
+                    get_color=[40, 40, 40, 240],  # 진회색으로 가독성 좋게
                     get_size=14,
                     get_alignment_baseline="'top'",
                     get_text_anchor="'middle'",
                 )
         
-                # 💙 내 위치 (살짝 진한 파랑)
+                # 💙 내 위치 (파스텔 하늘색 점)
                 me_layer = pdk.Layer(
                     "ScatterplotLayer",
                     data=me_df,
                     get_position=["lon", "lat"],
-                    get_color=[100, 149, 237, 240],  # 연파랑
+                    get_color=[135, 206, 250, 230],  # 연하늘색
                     get_radius=70,
                 )
         
-                # 🎨 pydeck 차트
+                # 🎨 pydeck 렌더링
                 st.pydeck_chart(
                     pdk.Deck(
                         map_provider="maplibre",
@@ -440,28 +430,28 @@ def main():
                         initial_view_state=pdk.ViewState(
                             latitude=user_lat,
                             longitude=user_lon,
-                            zoom=15.2,
-                            pitch=0
+                            zoom=15.3,
+                            pitch=0,
                         ),
-                        layers=[bg_layer, icon_layer, name_layer, me_layer],
-                        tooltip={"text": "{표시이름}"}
+                        layers=[icon_layer, name_layer, me_layer],
+                        tooltip={"text": "{표시이름}"},
                     )
                 )
             else:
                 st.warning("지도에 표시할 음식점이 없습니다.")
-
-        # ───────────────────────────────
-        # 페이지 이동 버튼
-        # ───────────────────────────────
-        col1, col2 = st.columns([9, 1])
-        with col1:
-            if st.button("⬅ 이전"):
-                st.session_state.page = "page1"
-                st.rerun()
-        with col2:
-            if st.button("➡ 다음"):
-                st.session_state.page = "page3"
-                st.rerun()
+        
+                # ───────────────────────────────
+                # 페이지 이동 버튼
+                # ───────────────────────────────
+                col1, col2 = st.columns([9, 1])
+                with col1:
+                    if st.button("⬅ 이전"):
+                        st.session_state.page = "page1"
+                        st.rerun()
+                with col2:
+                    if st.button("➡ 다음"):
+                        st.session_state.page = "page3"
+                        st.rerun()
 
     # ───────────────────────────────
     # Page 3 : 최종 선택 + 상세 카드
