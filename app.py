@@ -374,66 +374,57 @@ def main():
         # ───────────────────────────────
         with tabs[3]:
             if not filtered.empty:
-                # 위경도 컬럼 통일
                 df_map = filtered.rename(columns={"latitude": "lat", "longitude": "lon"}).copy()
                 df_map["표시이름"] = df_map["name_g"] if "name_g" in df_map.columns else df_map["이름"]
         
                 # 내 위치 데이터프레임
                 me_df = pd.DataFrame([{"lat": user_lat, "lon": user_lon}])
         
-                # 🍼 아기 수저 아이콘 (투명 배경 PNG)
-                icon_data = {
-                    "url": "https://cdn-icons-png.flaticon.com/512/11448/11448259.png",  # baby cutlery 아이콘
-                    "width": 512,
-                    "height": 512,
-                    "anchorY": 512,
-                }
-                df_map["icon_data"] = [icon_data for _ in range(len(df_map))]
-        
-                # 🍴 아이콘 표시 레이어
-                icon_layer = pdk.Layer(
-                    "IconLayer",
+                # 🍴 음식점 이모지 레이어
+                emoji_layer = pdk.Layer(
+                    "TextLayer",
                     data=df_map,
-                    get_icon="icon_data",
                     get_position=["lon", "lat"],
-                    get_size=5,
-                    size_scale=7,
-                    pickable=True,
+                    get_text="🍴",
+                    get_color=[255, 99, 71, 255],  # 토마토색
+                    get_size=22,
+                    get_alignment_baseline="'bottom'"
                 )
         
-                # 🍽️ 가게 이름 텍스트 레이어
+                # 🏷️ 음식점 이름 레이어
                 name_layer = pdk.Layer(
                     "TextLayer",
                     data=df_map,
                     get_position=["lon", "lat"],
                     get_text="표시이름",
-                    get_color=[40, 40, 40, 240],  # 진회색으로 가독성 좋게
+                    get_color=[60, 60, 60, 255],
                     get_size=14,
-                    get_alignment_baseline="'top'",
-                    get_text_anchor="'middle'",
+                    get_alignment_baseline="'top'"
                 )
         
-                # 💙 내 위치 (파스텔 하늘색 점)
+                # 💙 내 위치 (남색 + 흰색 테두리)
                 me_layer = pdk.Layer(
                     "ScatterplotLayer",
                     data=me_df,
                     get_position=["lon", "lat"],
-                    get_color=[135, 206, 250, 230],  # 연하늘색
-                    get_radius=70,
+                    get_fill_color=[25, 25, 112, 255],   # 남색
+                    get_line_color=[255, 255, 255, 255], # 흰색 테두리
+                    get_radius=90,
+                    line_width_min_pixels=2,
+                    stroked=True,
                 )
         
-                # 🎨 pydeck 렌더링
+                # pydeck 지도 렌더링
                 st.pydeck_chart(
                     pdk.Deck(
                         map_provider="maplibre",
-                        map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
+                        map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",  # 기본 지도 스타일 유지
                         initial_view_state=pdk.ViewState(
                             latitude=user_lat,
                             longitude=user_lon,
                             zoom=15.3,
-                            pitch=0,
                         ),
-                        layers=[icon_layer, name_layer, me_layer],
+                        layers=[emoji_layer, name_layer, me_layer],
                         tooltip={"text": "{표시이름}"},
                     )
                 )
