@@ -495,30 +495,30 @@ def main():
                 unsafe_allow_html=True,
             )
     
-            # 지도에서 보기 버튼 (색상 + Toast 추가)
+            # 🌐 지도에서 보기 버튼
             link = selected_row.get("map_link", None)
             if link:
-                if st.button("지도에서 보기"): #버튼 생성
+                if st.button("지도에서 보기", key="map_btn"):
                     st.toast("✅ 선택이 완료되었습니다!", icon="🎉")
                     time.sleep(0.3)
                     webbrowser.open_new_tab(link)
-    
-                # 버튼 색상 변경 (연보라 + hover)
+            
+                #  지도 버튼만 색상 변경 (연파랑 + hover + 검정 글씨)
                 st.markdown("""
                     <style>
-                    div.stButton > button:first-child {
-                        background-color: #C7CEFF;  /* 연보라 */
-                        color: white;
+                    div[data-testid="stButton"][key="map_btn"] > button {
+                        background-color: #D8EFFF;   /* 연파랑 */
+                        color: #000000;              /* 검정 글씨 */
                         border: none;
                         border-radius: 8px;
                         padding: 10px 18px;
                         font-weight: 600;
                         font-size: 16px;
-                        box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+                        box-shadow: 0 3px 6px rgba(0,0,0,0.1);
                         transition: all 0.2s ease;
                     }
-                    div.stButton > button:first-child:hover {
-                        background-color: #B9C0FF;  /* hover 시 살짝 진해짐 */
+                    div[data-testid="stButton"][key="map_btn"] > button:hover {
+                        background-color: #B9E0FF;   /* hover 시 조금 진한 하늘색 */
                         transform: scale(1.03);
                     }
                     </style>
