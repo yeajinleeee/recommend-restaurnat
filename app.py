@@ -431,14 +431,14 @@ def main():
             st.markdown(
                 f"""
                 <div style="margin-bottom:8px;">
-                  <span style="font-weight:600; font-size:22px;">오늘의 분위기:</span>
+                  <span style="font-weight:600; font-size:20px;">오늘의 분위기:</span>
                   <span style="
                       background:#ffeaea;
                       color:#d9534f;
                       padding:4px 10px;
                       border-radius:8px;
                       margin-left:8px;
-                      font-size:20px;
+                      font-size:18px;
                       font-weight:600;
                       ">
                       {choice}
@@ -452,7 +452,11 @@ def main():
             if selected_types:
                 st.markdown(
                     "<b>선택한 업태:</b> " + " · ".join(
-                        [f"<span style='background:#e8f5ff; padding:3px 8px; border-radius:6px; margin-right:4px;'>{t}</span>"
+                        [f"<span style='background:#e8f5ff;
+                                        padding:3px 8px;
+                                        border-radius:6px; 
+                                        margin-right:4px;
+                                        '>{t}</span>"
                          for t in selected_types]),
                     unsafe_allow_html=True,
                 )
@@ -463,12 +467,13 @@ def main():
             selected_name = st.selectbox("식당 선택", df["이름"])
             selected_row = df[df["이름"] == selected_name].iloc[0]
     
-            # 카드 정보 표시
+            # 카드 정보 표시 함수
             def info_line(icon, label, value):
                 if value not in [None, "", "nan", "정보 없음"]:
-                    return f"<p style='margin:5px 0;'>{icon} <b>{label}:</b> {value}</p>"
+                    return f"<p style='margin:5px 0; font-size:16px;'>{icon} <b>{label}:</b> {value}</p>"
                 return ""
     
+            # 표시할 정보 조합
             info_html = (
                 info_line("📍", "거리", selected_row.get("거리")) +
                 info_line("⭐", "별점", selected_row.get("별점")) +
@@ -488,22 +493,18 @@ def main():
                     margin-top:10px;
                     margin-bottom:20px;
                     border:1px solid #e8e8e8;">
-                    <h3 style="margin-bottom:5px;">🍴 {selected_row['이름']}</h3>
+                    <h3 style="margin-bottom:8px; font-size:20px;">🍴 {selected_row['이름']}</h3>
                     {info_html}
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
     
-            # 🌐 지도에서 보기 버튼
+            # 지도에서 보기 버튼 (연파랑 + 검정 글씨)
             link = selected_row.get("map_link", None)
+    
             if link:
-                if st.button("지도에서 보기", key="map_btn"):
-                    st.toast("✅ 선택이 완료되었습니다!", icon="🎉")
-                    time.sleep(0.3)
-                    webbrowser.open_new_tab(link)
-            
-                #  지도 버튼만 색상 변경 (연파랑 + hover + 검정 글씨)
+                # CSS 정의 (지도 버튼만 연파랑 스타일)
                 st.markdown("""
                     <style>
                     div[data-testid="stButton"][key="map_btn"] > button {
@@ -523,6 +524,12 @@ def main():
                     }
                     </style>
                 """, unsafe_allow_html=True)
+    
+                # 실제 버튼 생성 (Toast + 새 탭 열기)
+                if st.button("지도에서 보기", key="map_btn"):
+                    st.toast("✅ 선택이 완료되었습니다!", icon="🎉")
+                    time.sleep(0.3)
+                    webbrowser.open_new_tab(link)
             else:
                 st.warning("이 식당의 지도 링크가 없습니다.")
                     
@@ -538,6 +545,7 @@ def main():
             if st.button("처음으로"):
                 st.session_state.page = "page1"
                 st.rerun()
+                
                 
 if __name__ == "__main__":
     main()
