@@ -307,7 +307,7 @@ def main():
             df.index = df.index + 1
             # 이름 → 클릭 가능한 링크
             df["이름"] = df.apply(lambda x: f"[{x['이름']}]({x['map_link']})", axis=1)
-            st.dataframe(df[["이름","거리"]], use_container_width=True, height=300)
+            st.markdown(df[["이름", "거리"]].to_markdown(index=False), unsafe_allow_html=True)
         else:
             st.warning("해당 카테고리 음식점이 없습니다.")
 
@@ -331,7 +331,7 @@ def main():
             df = prettify_dataframe(filtered)[["이름", "거리", "map_link"]].reset_index(drop=True)
             df.index = df.index + 1
             df["이름"] = df.apply(lambda x: f"[{x['이름']}]({x['map_link']})", axis=1)
-            st.dataframe(df[["이름","거리"]], use_container_width=True, height=300)
+            st.markdown(df[["이름", "거리"]].to_markdown(index=False), unsafe_allow_html=True)
         else:
             st.warning("데이터가 없습니다.")
 
