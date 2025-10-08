@@ -65,7 +65,7 @@ CATEGORY_ALIAS = {
 }
 
 def norm_cat(name: str) -> str:
-    """카테고리 라벨을 표준형으로 맞춥니다."""
+    """카테고리 라벨을 표준화"""
     return CATEGORY_ALIAS.get(str(name).strip(), str(name).strip())
 
 def _normalize_label(s: str) -> str:
@@ -116,7 +116,7 @@ def resolve_tf_column(frame: pd.DataFrame, expected_label: str) -> str | None:
 def prettify_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     """
     표시용 DataFrame 가공:
-    - 거리 컬럼을 'm' 또는 'km'로 보기 좋게 포맷
+    - 거리 컬럼을 'm' 또는 'km'로 포맷
     - 이름/업태/주소/별점/리뷰수 한글 컬럼명으로 통일
     """
     if df is None or df.empty:
@@ -202,7 +202,6 @@ def recommended_categories_from_group(group_name: str, top_k: int | None = None)
 def filter_by_weather_via_categories(frame: pd.DataFrame, group_name: str) -> pd.DataFrame:
     """
     날씨 그룹에 맞는 여러 TF 컬럼을 OR 조건으로 묶어 필터링.
-    - 예: '비'이면 ["뜨끈한 국물", "매콤한 음식", ...] 중 하나라도 True인 행만 남김
     """
     if frame is None or frame.empty:
         return pd.DataFrame()
@@ -216,7 +215,7 @@ def filter_by_weather_via_categories(frame: pd.DataFrame, group_name: str) -> pd
         if col:
             cols.append(col)
 
-    # 해당하는 TF 컬럼이 하나도 없으면 원본 그대로 반환(보수적)
+    # 해당하는 TF 컬럼이 하나도 없으면 원본 그대로 반환
     if not cols:
         return frame
 
@@ -303,8 +302,7 @@ def get_restaurant_within_500m_from_supabase(lat: float, lon: float) -> pd.DataF
 
 def filter_by_category_tf(frame: pd.DataFrame, theme: str) -> pd.DataFrame:
     """
-    사용자가 고른 단일 카테고리(theme)에 해당하는 TF 컬럼이 True인 행만 필터.
-    - 거리 제공 시 distance_m 오름차순 정렬
+    사용자가 고른 단일 카테고리에 해당하는 TF 컬럼이 True인 행만 필터
     """
     if frame is None or frame.empty:
         return pd.DataFrame()
@@ -410,8 +408,6 @@ def main():
         choice = st.session_state.get("choice")
         st.header(f"‘{choice}’ 카테고리 결과")
 
-        # (참고) 여기서는 날씨/카테고리 필터를 다시 적용해도 되지만
-        # 사용 흐름상 1페이지에서 좁혔으므로 카테고리 기준만 반복 적용
         filtered_df = filter_by_category_tf(all_df, choice)
 
         # 업태 멀티 필터
@@ -447,7 +443,7 @@ def main():
         # 지도 탭
         with tabs[3]:
             if not filtered.empty:
-                # 지도에 표시할 이름 컬럼 추출(여러 스키마 대응)
+                # 지도에 표시할 이름 컬럼 추출
                 name_col = None
                 for cand in ["name_g", "name", "place_name", "store_name", "상호명", "이름"]:
                     if cand in filtered.columns:
