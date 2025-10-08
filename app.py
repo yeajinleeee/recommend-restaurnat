@@ -403,16 +403,6 @@ def main():
                     pickable=True,
                 )
         
-                # 🏷️ 음식점 이름 레이어
-                name_layer = pdk.Layer(
-                    "TextLayer",
-                    data=df_map,
-                    get_position=["lon", "lat"],
-                    get_text="표시이름",
-                    get_color=[60, 60, 60, 255],
-                    get_size=40,
-                    get_alignment_baseline="'top'",
-                )
         
                 # 💙 내 위치 (남색 점 + 흰색 테두리)
                 me_layer = pdk.Layer(
