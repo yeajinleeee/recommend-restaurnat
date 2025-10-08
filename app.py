@@ -429,14 +429,14 @@ def main():
             st.markdown(
                 f"""
                 <div style="margin-bottom:8px;">
-                  <span style="font-weight:600; font-size:20px;">오늘의 분위기:</span>
+                  <span style="font-weight:600; font-size:18px;">오늘의 분위기:</span>
                   <span style="
                       background:#ffeaea;
                       color:#d9534f;
                       padding:4px 10px;
                       border-radius:8px;
                       margin-left:8px;
-                      font-size:18px;
+                      font-size:16px;
                       font-weight:600;
                       ">
                       {choice}
@@ -515,11 +515,12 @@ def main():
                 unsafe_allow_html=True,
             )
             
-            #선택완료 버튼
-            col_center = st.columns([3, 1, 3])
-            with col_center[1]:
-                if st.button("✅ 선택 완료", use_container_width=True):
-                    st.success("✅ 선택이 완료되었습니다!", icon="🎉")
+            # 선택완료 버튼
+            st.markdown("<div style='text-align:center;'>", unsafe_allow_html=True)
+            if st.button("✅ 선택 완료", use_container_width=False):
+                st.success("✅ 선택이 완료되었습니다!", icon="🎉")
+            st.markdown("</div>", unsafe_allow_html=True)
+
     
         # ───────────────────────────────
         # 페이지 이동 버튼
