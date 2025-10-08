@@ -515,9 +515,11 @@ def main():
                 unsafe_allow_html=True,
             )
             
-            # 완료 버튼 (Streamlit 기능)
-            if st.button("✅ 선택 완료"):
-                st.success("선택이 완료되었습니다!", icon="🎉")
+            # ✅ 선택 완료 버튼 (가운데 정렬)
+            st.markdown("<div style='text-align:center;'>", unsafe_allow_html=True)
+            if st.button("✅ 선택 완료", use_container_width=False):
+                st.success("✅ 선택이 완료되었습니다!", icon="🎉")
+            st.markdown("</div>", unsafe_allow_html=True)
     
         # ───────────────────────────────
         # 페이지 이동 버튼
