@@ -370,7 +370,7 @@ def main():
                 st.dataframe(df[["이름", "리뷰 수"]], use_container_width=True, height=420)
     
         # ───────────────────────────────
-        # Page 2 : 지도 탭 (3번째 탭)
+        # 지도 탭 (3번째 탭)
         # ───────────────────────────────
         with tabs[3]:
             if not filtered.empty:
@@ -386,10 +386,9 @@ def main():
                     "url": icon_url,
                     "width": 512,
                     "height": 512,
-                    "anchorY": 512,  # 아이콘의 아래쪽이 위치를 기준으로 오도록 설정
+                    "anchorY": 512,
                 }
         
-                # 아이콘 데이터 추가
                 df_map["icon_data"] = [icon_data] * len(df_map)
         
                 # 음식점 레이어 (아이콘)
@@ -398,7 +397,7 @@ def main():
                     data=df_map,
                     get_icon="icon_data",
                     get_position=["lon", "lat"],
-                    get_size=5,  # 아이콘 크기 (조절 가능)
+                    get_size=5,
                     size_scale=8,
                     pickable=True,
                 )
@@ -426,11 +425,11 @@ def main():
                     stroked=True,
                 )
         
-                # pydeck 지도 렌더링
+                # ✅ 지도 스타일 최신 경로
                 st.pydeck_chart(
                     pdk.Deck(
                         map_provider="maplibre",
-                        map_style="https://basemaps.cartocdn.com/gl/positron-gl-style-nolabels.json",
+                        map_style="https://basemaps.cartocdn.com/gl/positron-nolabels-gl-style/style.json",
                         initial_view_state=pdk.ViewState(
                             latitude=user_lat,
                             longitude=user_lon,
