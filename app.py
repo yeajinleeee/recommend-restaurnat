@@ -403,84 +403,129 @@ def main():
                 st.session_state.page = "page3"
                 st.rerun()
         
+
     # ───────────────────────────────
-    # Page 3: 최종 선택 페이지 (최종 버전)
+    # Page 3 : 최종 선택 + 상세 카드
     # ───────────────────────────────
     elif st.session_state.page == "page3":
         import time
         import webbrowser
     
-        # 버튼 색상 스타일 (연보라 + hover 진한보라)
-        st.markdown("""
-            <style>
-            div.stButton > button:first-child {
-                background-color: #C7CEFF;  /* 연보라 */
-                color: white;
-                border: none;
-                border-radius: 10px;
-                padding: 10px 26px;
-                font-weight: 600;
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-                transition: all 0.25s ease;
-            }
-            div.stButton > button:first-child:hover {
-                background-color: #B9C0FF;  /* hover 시 진해짐 */
-                color: white;
-                transform: scale(1.03);
-            }
-            </style>
-        """, unsafe_allow_html=True)
+        st.header("최종 선택")
     
-        st.header("최종 선택 🍽️")
+        choice = st.session_state.get("choice")
+        filtered_df = filter_by_category_tf(all_df, choice)
     
-        choice = st.session_state.get("choice", None)
-        all_df = get_restaurant_within_500m_from_supabase(user_lat, user_lon)
-    
-        if choice:
-            filtered_df = filter_by_category_tf(all_df, choice)
-        else:
-            filtered_df = all_df
-    
-        # 업태 필터링 반영
+        # 2페이지에서 선택한 업태 반영
         selected_types = st.session_state.get("selected_types", [])
         if selected_types:
             filtered_df = filtered_df[filtered_df["category"].isin(selected_types)]
     
         if filtered_df.empty:
-            st.warning("선택 가능한 음식점이 없습니다.")
+            st.warning("선택 가능한 식당이 없습니다. 2페이지에서 다시 선택해주세요.")
         else:
-            # 🔹 분위기 박스 (연한 빨강 + 밑줄)
+            df = prettify_dataframe(filtered_df).copy()
+            df = df.reset_index(drop=True)
+    
+            # 오늘의 분위기: 연한 빨강 배경 태그 스타일
             st.markdown(
                 f"""
-                <div style='background-color:#FFECEC; padding:12px 18px; border-radius:10px; margin-bottom:20px;'>
-                    <strong style='color:#C71515;'>오늘의 분위기 :</strong>
-                    <span style='font-weight:600; margin-left:5px; text-decoration:underline;'>
-                        {choice if choice else "선택 없음"}
-                    </span>
+                <div style="margin-bottom:8px;">
+                  <span style="font-weight:600; font-size:22px;">오늘의 분위기:</span>
+                  <span style="
+                      background:#ffeaea;
+                      color:#d9534f;
+                      padding:4px 10px;
+                      border-radius:8px;
+                      margin-left:8px;
+                      font-size:20px;
+                      font-weight:600;
+                      ">
+                      {choice}
+                  </span>
                 </div>
                 """,
-                unsafe_allow_html=True
+                unsafe_allow_html=True,
             )
     
-            # 음식점 선택
-            selected_name = st.selectbox("음식점을 선택하세요 👇", filtered_df["이름"])
-            selected_row = filtered_df[filtered_df["이름"] == selected_name].iloc[0]
+            # 선택한 업태: 연한 파랑 배경 태그 스타일
+            if selected_types:
+                st.markdown(
+                    "<b>선택한 업태:</b> " + " · ".join(
+                        [f"<span style='background:#e8f5ff; padding:3px 8px; border-radius:6px; margin-right:4px;'>{t}</span>"
+                         for t in selected_types]),
+                    unsafe_allow_html=True,
+                )
     
-            # 🔹 카드 형태 정보 표시
+            st.markdown("#### 최종으로 방문할 식당을 선택하세요 👇")
+    
+            # 식당 선택
+            selected_name = st.selectbox("식당 선택", df["이름"])
+            selected_row = df[df["이름"] == selected_name].iloc[0]
+    
+            # 카드 정보 표시
+            def info_line(icon, label, value):
+                if value not in [None, "", "nan", "정보 없음"]:
+                    return f"<p style='margin:5px 0;'>{icon} <b>{label}:</b> {value}</p>"
+                return ""
+    
+            info_html = (
+                info_line("📍", "거리", selected_row.get("거리")) +
+                info_line("⭐", "별점", selected_row.get("별점")) +
+                info_line("💬", "리뷰 수", selected_row.get("리뷰 수")) +
+                info_line("🏠", "주소", selected_row.get("주소"))
+            )
+    
+            # 카드형 정보 출력
             st.markdown("---")
-            st.markdown(f"### 🍴 {selected_row['이름']}")
-            st.markdown(f"📍 거리: {selected_row.get('거리', '정보 없음')}")
-            st.markdown(f"⭐ 별점: {selected_row.get('별점', '정보 없음')}")
-            st.markdown(f"💬 리뷰 수: {selected_row.get('리뷰 수', '정보 없음')}")
-            st.markdown(f"🏠 주소: {selected_row.get('주소', '정보 없음')}")
+            st.markdown(
+                f"""
+                <div style="
+                    background-color:#ffffff;
+                    border-radius:12px;
+                    box-shadow:0 2px 10px rgba(0,0,0,0.1);
+                    padding:20px;
+                    margin-top:10px;
+                    margin-bottom:20px;
+                    border:1px solid #e8e8e8;">
+                    <h3 style="margin-bottom:5px;">🍴 {selected_row['이름']}</h3>
+                    {info_html}
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
     
-            # 🔹 지도 보기 버튼 (Toast + 새 탭 열기)
-            link = selected_row["map_link"]
-            if st.button("지도에서 보기"):
-                st.toast("✅ 선택이 완료되었습니다!", icon="🎉")
-                time.sleep(0.3)
-                webbrowser.open_new_tab(link)
-                
+            # 지도에서 보기 버튼 (색상 + Toast 추가)
+            link = selected_row.get("map_link", None)
+            if link:
+                if st.button("지도에서 보기"): #버튼 생성
+                    st.toast("✅ 선택이 완료되었습니다!", icon="🎉")
+                    time.sleep(0.3)
+                    webbrowser.open_new_tab(link)
+    
+                # 버튼 색상 변경 (연보라 + hover)
+                st.markdown("""
+                    <style>
+                    div.stButton > button:first-child {
+                        background-color: #C7CEFF;  /* 연보라 */
+                        color: white;
+                        border: none;
+                        border-radius: 8px;
+                        padding: 10px 18px;
+                        font-weight: 600;
+                        font-size: 16px;
+                        box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+                        transition: all 0.2s ease;
+                    }
+                    div.stButton > button:first-child:hover {
+                        background-color: #B9C0FF;  /* hover 시 살짝 진해짐 */
+                        transform: scale(1.03);
+                    }
+                    </style>
+                """, unsafe_allow_html=True)
+            else:
+                st.warning("이 식당의 지도 링크가 없습니다.")
+                    
         # ───────────────────────────────
         # 페이지 이동 버튼
         # ───────────────────────────────
