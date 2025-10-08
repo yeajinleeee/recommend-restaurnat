@@ -398,7 +398,7 @@ def main():
                     data=df_map,
                     get_icon="icon_data",
                     get_position=["lon", "lat"],
-                    get_size=5,  # 아이콘 크기 (조절 가능)
+                    get_size=3,  # 아이콘 크기 (조절 가능)
                     size_scale=8,
                     pickable=True,
                 )
